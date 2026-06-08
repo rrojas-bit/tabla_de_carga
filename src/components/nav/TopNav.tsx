@@ -15,6 +15,7 @@ const TABS = [
   { href: "/transportista", label: "Transportista", rol: "transportista" },
   { href: "/importador", label: "Importador / Exportador", rol: "importador" },
   { href: "/piloto", label: "App Piloto", rol: null },
+  { href: "/admin", label: "Admin", rol: "admin_only" },
 ];
 
 function getInitials(name: string) {
@@ -37,12 +38,14 @@ export default function TopNav({ profile }: { profile: Profile }) {
     router.refresh();
   }
 
-  const visibleTabs =
-    profile?.rol === "admin" || profile?.rol === "staff"
-      ? TABS
-      : TABS.filter(
-          (t) => t.rol === null || t.rol === profile?.rol || t.href === "/piloto"
-        );
+  const isAdminUser = profile?.rol === "admin" || profile?.rol === "staff";
+
+  const visibleTabs = TABS.filter((t) => {
+    if (t.rol === "admin_only") return isAdminUser;
+    if (t.rol === null) return true;
+    if (isAdminUser) return true;
+    return t.rol === profile?.rol;
+  });
 
   return (
     <nav className="flex items-center justify-between px-6 py-3 bg-white border-b border-[rgba(68,68,65,0.12)] sticky top-0 z-50">

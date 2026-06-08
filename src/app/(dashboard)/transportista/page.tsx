@@ -47,7 +47,7 @@ export default async function TransportistaPage() {
   ] = await Promise.all([
     supabase
       .from("empresas")
-      .select("id, nombre, score_plataforma, total_evaluaciones")
+      .select("id, nombre, score_plataforma, total_evaluaciones, estado")
       .eq("id", profile.empresa_id)
       .single(),
 
@@ -97,6 +97,7 @@ export default async function TransportistaPage() {
   return (
     <TransportistaView
       empresa={empresaRes.data}
+      empresaEstado={empresaRes.data?.estado ?? undefined}
       flota={flotaRes.data ?? []}
       tarifas={tarifasRes.data ?? []}
       autoAsignacion={perfilRes.data?.auto_asignacion_activa ?? false}

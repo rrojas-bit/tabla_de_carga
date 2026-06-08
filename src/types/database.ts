@@ -137,6 +137,7 @@ export type Database = {
           nombre: string
           rtu: string | null
           score_plataforma: number | null
+          telefono_whatsapp: string | null
           tipo: Database["public"]["Enums"]["empresa_tipo"]
           total_evaluaciones: number | null
           updated_at: string
@@ -148,6 +149,7 @@ export type Database = {
           nombre: string
           rtu?: string | null
           score_plataforma?: number | null
+          telefono_whatsapp?: string | null
           tipo: Database["public"]["Enums"]["empresa_tipo"]
           total_evaluaciones?: number | null
           updated_at?: string
@@ -159,6 +161,7 @@ export type Database = {
           nombre?: string
           rtu?: string | null
           score_plataforma?: number | null
+          telefono_whatsapp?: string | null
           tipo?: Database["public"]["Enums"]["empresa_tipo"]
           total_evaluaciones?: number | null
           updated_at?: string

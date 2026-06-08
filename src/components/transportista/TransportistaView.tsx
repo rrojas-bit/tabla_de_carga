@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
+import { createClient } from "@/lib/supabase/client";
 import type { CargaRow } from "@/app/(dashboard)/transportista/page";
 
 type Empresa = {
@@ -32,6 +33,7 @@ type TarifaRuta = {
 
 type Props = {
   empresa: Empresa;
+  empresaEstado?: string;
   flota: FlotaItem[];
   tarifas: TarifaRuta[];
   autoAsignacion: boolean;
@@ -50,14 +52,49 @@ const FILTERS: { value: Filter; label: string }[] = [
 
 export default function TransportistaView({
   empresa,
+  empresaEstado,
   flota,
   tarifas,
   autoAsignacion,
-  cargas,
+  cargas: initialCargas,
   statsCargas,
 }: Props) {
   const [filter, setFilter] = useState<Filter>("todas");
   const [bidCarga, setBidCarga] = useState<CargaRow | null>(null);
+  const [cargas, setCargas] = useState<CargaRow[]>(initialCargas);
+  const [newCargaAlert, setNewCargaAlert] = useState(false);
+
+  // Realtime subscription for new cargas
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("cargas_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "cargas",
+          filter: "estado=eq.publicada",
+        },
+        (payload) => {
+          setCargas((prev) => {
+            const already = prev.find((c) => c.id === payload.new.id);
+            if (already) return prev;
+            return [payload.new as unknown as CargaRow, ...prev];
+          });
+          setNewCargaAlert(true);
+          setTimeout(() => setNewCargaAlert(false), 5000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const isPendiente = empresaEstado === "pendiente_calificacion";
 
   const filtered = cargas.filter((c) => {
     if (filter === "importacion") return c.tipo_operacion === "importacion";
@@ -79,6 +116,29 @@ export default function TransportistaView({
 
       {/* Main content */}
       <main className="flex-1 p-6 bg-bg overflow-y-auto">
+        {/* Pending approval banner */}
+        {isPendiente && (
+          <div className="mb-5 p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
+            <i className="ti ti-clock-hour-4 text-amber-400 text-xl flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[13px] font-semibold text-amber-600">
+                Cuenta en revisión
+              </p>
+              <p className="text-[12px] text-amber-600 mt-0.5 leading-5">
+                Tu empresa está siendo evaluada por el equipo de ContainerGT. Una vez aprobada, podrás hacer ofertas en cargas. Mientras tanto, puedes ver las publicaciones disponibles.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* New carga Realtime alert */}
+        {newCargaAlert && (
+          <div className="mb-4 p-3 bg-teal-50 border border-teal-100 rounded-md flex items-center gap-2 text-[13px] text-teal-600 font-medium animate-pulse">
+            <i className="ti ti-bell-ringing" />
+            Nueva carga publicada — aparece al inicio de la lista
+          </div>
+        )}
+
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <StatCard

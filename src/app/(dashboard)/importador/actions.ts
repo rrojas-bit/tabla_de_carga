@@ -115,6 +115,29 @@ export async function acceptBid(bidId: string, cargaId: string) {
   if (updateBid.error) return { error: updateBid.error.message };
   if (updateCarga.error) return { error: updateCarga.error.message };
 
+  // WhatsApp notification to winning transportista
+  const { data: transportistaEmpresa } = await supabase
+    .from("empresas")
+    .select("nombre, telefono_whatsapp")
+    .eq("id", bid.empresa_id)
+    .single();
+
+  const { data: cargaInfo } = await supabase
+    .from("cargas")
+    .select("numero, destino_direccion, puerto:puertos(nombre)")
+    .eq("id", cargaId)
+    .single();
+
+  if (transportistaEmpresa?.telefono_whatsapp) {
+    const { sendWhatsApp } = await import("@/lib/notifications/whatsapp");
+    const numero = cargaInfo?.numero ?? cargaId.slice(0, 8);
+    const ruta = `${(cargaInfo?.puerto as { nombre?: string } | null)?.nombre ?? "Puerto"} → ${cargaInfo?.destino_direccion ?? "destino"}`;
+    await sendWhatsApp(
+      transportistaEmpresa.telefono_whatsapp,
+      `🎉 *ContainerGT* — ¡Tu oferta fue aceptada!\n\nCarga: *#${numero}*\nRuta: ${ruta}\n\nInicia sesión para ver los detalles y coordinar la recogida.`
+    );
+  }
+
   revalidatePath("/importador");
   return { success: true };
 }
