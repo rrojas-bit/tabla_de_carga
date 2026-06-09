@@ -56,58 +56,38 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { nombre_completo: nombre, rol },
-      },
-    });
-
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (!authData.user) {
-      setError("No se pudo crear el usuario.");
-      setLoading(false);
-      return;
-    }
-
-    // Create empresa as authenticated user (requires email confirmation disabled in Supabase)
     const empresaTipo =
       rol === "transportista" ? "transportista" : "importador";
 
-    const { data: empresaData, error: empresaError } = await supabase
-      .from("empresas")
-      .insert({ nombre: empresa, tipo: empresaTipo, rtu: rtu || null })
-      .select("id")
-      .single();
+    // Server-side registration: creates confirmed user + empresa atomically
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, nombre, empresa, rol: empresaTipo === "transportista" ? "transportista" : "importador", rtu }),
+    });
 
-    if (empresaError) {
-      setError("Error creando empresa: " + empresaError.message);
+    const result = await res.json();
+    if (!res.ok) {
+      setError(result.error ?? "Error creando cuenta.");
       setLoading(false);
       return;
     }
 
-    await supabase
-      .from("profiles")
-      .update({ empresa_id: empresaData.id })
-      .eq("id", authData.user.id);
+    // Auto sign-in after successful registration
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (rol === "transportista") {
-      await supabase
-        .from("transportista_perfil")
-        .insert({ empresa_id: empresaData.id });
+    if (signInError) {
+      setError("Cuenta creada. Inicia sesión manualmente.");
+      setMode("login");
+      setLoading(false);
+      return;
     }
 
-    setSuccess(
-      "Cuenta creada. Revisa tu correo para confirmar tu email, luego inicia sesión."
-    );
-    setMode("login");
-    setLoading(false);
+    router.push("/");
+    router.refresh();
   }
 
   return (
