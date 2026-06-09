@@ -79,32 +79,23 @@ export default function LoginPage() {
       return;
     }
 
-    // Create empresa record
+    // Create empresa + link profile + transportista_perfil in one secure RPC
     const empresaTipo =
       rol === "transportista" ? "transportista" : "importador";
-    const { data: empresaData, error: empresaError } = await supabase
-      .from("empresas")
-      .insert({ nombre: empresa, tipo: empresaTipo, rtu: rtu || null })
-      .select("id")
-      .single();
+    const { error: empresaError } = await supabase.rpc(
+      "create_empresa_on_signup",
+      {
+        p_user_id: authData.user.id,
+        p_nombre: empresa,
+        p_tipo: empresaTipo,
+        p_rtu: rtu || null,
+      }
+    );
 
     if (empresaError) {
       setError("Error creando empresa: " + empresaError.message);
       setLoading(false);
       return;
-    }
-
-    // Update profile with empresa_id
-    await supabase
-      .from("profiles")
-      .update({ empresa_id: empresaData.id })
-      .eq("id", authData.user.id);
-
-    // Create transportista_perfil if applicable
-    if (rol === "transportista") {
-      await supabase
-        .from("transportista_perfil")
-        .insert({ empresa_id: empresaData.id });
     }
 
     setSuccess(

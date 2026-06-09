@@ -539,7 +539,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_empresa_on_signup: {
+        Args: {
+          p_user_id: string
+          p_nombre: string
+          p_tipo: string
+          p_rtu?: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       asignacion_modo: "manual" | "automatico"
