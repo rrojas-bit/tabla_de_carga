@@ -71,7 +71,15 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password, nombre, empresa, rol, rtu }),
       });
 
-      const result = await res.json();
+      let result: { error?: string; success?: boolean };
+      try {
+        result = await res.json();
+      } catch {
+        setError(`Error del servidor (${res.status} ${res.statusText}). Revisa Vercel logs.`);
+        setLoading(false);
+        return;
+      }
+
       if (!res.ok) {
         setError(result.error ?? "Error creando cuenta.");
         setLoading(false);
