@@ -3,54 +3,69 @@ import { NextResponse } from "next/server";
 import type { Database } from "@/types/database";
 
 export async function POST(request: Request) {
-  const { email, password, nombre, empresa, rol, rtu } =
-    await request.json();
+  try {
+    const { email, password, nombre, empresa, rol, rtu } =
+      await request.json();
 
-  const supabaseAdmin = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: "Configuración de servidor incompleta (SERVICE_ROLE_KEY)." },
+        { status: 500 }
+      );
+    }
 
-  // Create confirmed user via admin API
-  const { data: authData, error: authError } =
-    await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      user_metadata: { nombre_completo: nombre, rol },
-      email_confirm: true,
-    });
+    const supabaseAdmin = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
 
-  if (authError) {
-    return NextResponse.json({ error: authError.message }, { status: 400 });
-  }
+    // Create confirmed user via admin API
+    const { data: authData, error: authError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        user_metadata: { nombre_completo: nombre, rol },
+        email_confirm: true,
+      });
 
-  const userId = authData.user.id;
-  const empresaTipo =
-    rol === "transportista" ? "transportista" : "importador";
+    if (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 400 });
+    }
 
-  const { data: empresaData, error: empresaError } = await supabaseAdmin
-    .from("empresas")
-    .insert({ nombre: empresa, tipo: empresaTipo as Database["public"]["Enums"]["empresa_tipo"], rtu: rtu || null })
-    .select("id")
-    .single();
+    const userId = authData.user.id;
+    const empresaTipo =
+      rol === "transportista" ? "transportista" : "importador";
 
-  if (empresaError) {
-    // Clean up auth user if empresa fails
-    await supabaseAdmin.auth.admin.deleteUser(userId);
-    return NextResponse.json({ error: empresaError.message }, { status: 400 });
-  }
+    const { data: empresaData, error: empresaError } = await supabaseAdmin
+      .from("empresas")
+      .insert({
+        nombre: empresa,
+        tipo: empresaTipo as Database["public"]["Enums"]["empresa_tipo"],
+        rtu: rtu || null,
+      })
+      .select("id")
+      .single();
 
-  await supabaseAdmin
-    .from("profiles")
-    .update({ empresa_id: empresaData.id })
-    .eq("id", userId);
+    if (empresaError) {
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      return NextResponse.json({ error: empresaError.message }, { status: 400 });
+    }
 
-  if (rol === "transportista") {
     await supabaseAdmin
-      .from("transportista_perfil")
-      .insert({ empresa_id: empresaData.id });
-  }
+      .from("profiles")
+      .update({ empresa_id: empresaData.id })
+      .eq("id", userId);
 
-  return NextResponse.json({ success: true });
+    if (rol === "transportista") {
+      await supabaseAdmin
+        .from("transportista_perfil")
+        .insert({ empresa_id: empresaData.id });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error inesperado.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
