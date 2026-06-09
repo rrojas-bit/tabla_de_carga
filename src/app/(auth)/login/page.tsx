@@ -56,44 +56,25 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    const empresaTipo =
+      rol === "transportista" ? "transportista" : "importador";
+
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           nombre_completo: nombre,
           rol,
+          nombre_empresa: empresa,
+          empresa_tipo: empresaTipo,
+          rtu: rtu || null,
         },
       },
     });
 
     if (signUpError) {
       setError(signUpError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (!authData.user) {
-      setError("No se pudo crear el usuario.");
-      setLoading(false);
-      return;
-    }
-
-    // Create empresa + link profile + transportista_perfil in one secure RPC
-    const empresaTipo =
-      rol === "transportista" ? "transportista" : "importador";
-    const { error: empresaError } = await supabase.rpc(
-      "create_empresa_on_signup",
-      {
-        p_user_id: authData.user.id,
-        p_nombre: empresa,
-        p_tipo: empresaTipo,
-        p_rtu: rtu || null,
-      }
-    );
-
-    if (empresaError) {
-      setError("Error creando empresa: " + empresaError.message);
       setLoading(false);
       return;
     }
