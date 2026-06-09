@@ -22,6 +22,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [nombre, setNombre] = useState("");
   const [empresa, setEmpresa] = useState("");
   const [rtu, setRtu] = useState("");
@@ -56,38 +57,46 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const empresaTipo =
-      rol === "transportista" ? "transportista" : "importador";
-
-    // Server-side registration: creates confirmed user + empresa atomically
-    const res = await fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, nombre, empresa, rol: empresaTipo === "transportista" ? "transportista" : "importador", rtu }),
-    });
-
-    const result = await res.json();
-    if (!res.ok) {
-      setError(result.error ?? "Error creando cuenta.");
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
       setLoading(false);
       return;
     }
 
-    // Auto sign-in after successful registration
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Server-side registration: creates confirmed user + empresa atomically
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, nombre, empresa, rol, rtu }),
+      });
 
-    if (signInError) {
-      setError("Cuenta creada. Inicia sesión manualmente.");
-      setMode("login");
+      const result = await res.json();
+      if (!res.ok) {
+        setError(result.error ?? "Error creando cuenta.");
+        setLoading(false);
+        return;
+      }
+
+      // Auto sign-in after successful registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError("Cuenta creada. Inicia sesión manualmente.");
+        setMode("login");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
       setLoading(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -214,7 +223,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="mb-5">
+            <div className={mode === "register" ? "mb-3" : "mb-5"}>
               <label className="block text-xs text-gray-400 mb-1">
                 Contraseña
               </label>
@@ -228,6 +237,23 @@ export default function LoginPage() {
                 className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
               />
             </div>
+
+            {mode === "register" && (
+              <div className="mb-5">
+                <label className="block text-xs text-gray-400 mb-1">
+                  Confirmar contraseña
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repite tu contraseña"
+                  className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                />
+              </div>
+            )}
 
             <button
               type="submit"
