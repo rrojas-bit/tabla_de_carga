@@ -91,6 +91,17 @@ export default function TopNav({ profile }: { profile: Profile }) {
             </span>
           </>
         )}
+        <Link
+          href="/billing"
+          title="Planes y facturación"
+          className={`ml-1 transition-colors ${
+            pathname.startsWith("/billing")
+              ? "text-teal-500"
+              : "text-gray-200 hover:text-gray-400"
+          }`}
+        >
+          <i className="ti ti-receipt text-lg" />
+        </Link>
         <button
           onClick={handleLogout}
           title="Cerrar sesión"
