@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { registerUser } from "./actions";
 
 type Mode = "login" | "register";
 
@@ -64,24 +65,10 @@ export default function LoginPage() {
     }
 
     try {
-      // Server-side registration: creates confirmed user + empresa atomically
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, nombre, empresa, rol, rtu }),
-      });
+      const result = await registerUser(email, password, nombre, empresa, rol, rtu || null);
 
-      let result: { error?: string; success?: boolean };
-      try {
-        result = await res.json();
-      } catch {
-        setError(`Error del servidor (${res.status} ${res.statusText}). Revisa Vercel logs.`);
-        setLoading(false);
-        return;
-      }
-
-      if (!res.ok) {
-        setError(result.error ?? "Error creando cuenta.");
+      if (!result.success) {
+        setError(result.error);
         setLoading(false);
         return;
       }
