@@ -14,11 +14,11 @@ const config: Config = {
       black: "#000000",
       bg: "#f7f6f3",
       teal: {
-        50: "#E1F5EE",
-        100: "#9FE1CB",
-        400: "#1D9E75",
-        600: "#0F6E56",
-        800: "#085041",
+        50: "#EEF3FC",
+        100: "#C2D4F0",
+        400: "#1B4FBF",
+        600: "#153A91",
+        800: "#0F2766",
       },
       amber: {
         50: "#FAEEDA",
@@ -66,7 +66,7 @@ const config: Config = {
         DEFAULT: "rgba(68,68,65,0.12)",
       },
       ringColor: {
-        DEFAULT: "#1D9E75",
+        DEFAULT: "#1B4FBF",
       },
     },
   },
