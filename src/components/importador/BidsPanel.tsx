@@ -45,6 +45,28 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
   useEffect(() => {
     if (!carga) return;
     fetchBids(carga.id);
+
+    // Realtime: refresh when new bids arrive for this carga
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`bids_carga_${carga.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bids",
+          filter: `carga_id=eq.${carga.id}`,
+        },
+        () => {
+          fetchBids(carga.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carga?.id]);
 

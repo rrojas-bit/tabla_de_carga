@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
+import MisOfertas from "./MisOfertas";
 import { createClient } from "@/lib/supabase/client";
-import type { CargaRow } from "@/app/(dashboard)/transportista/page";
+import type { CargaRow, MiOferta } from "@/app/(dashboard)/transportista/page";
 
 type Empresa = {
   id: string;
@@ -39,6 +40,9 @@ type Props = {
   autoAsignacion: boolean;
   cargas: CargaRow[];
   statsCargas: number;
+  misOfertas: MiOferta[];
+  ingresosMes: number;
+  ingresosMesAnterior: number;
 };
 
 type Filter = "todas" | "importacion" | "exportacion" | "reefer";
@@ -58,8 +62,12 @@ export default function TransportistaView({
   autoAsignacion,
   cargas: initialCargas,
   statsCargas,
+  misOfertas,
+  ingresosMes,
+  ingresosMesAnterior,
 }: Props) {
   const [filter, setFilter] = useState<Filter>("todas");
+  const [tab, setTab] = useState<"disponibles" | "ofertas">("disponibles");
   const [bidCarga, setBidCarga] = useState<CargaRow | null>(null);
   const [cargas, setCargas] = useState<CargaRow[]>(initialCargas);
   const [newCargaAlert, setNewCargaAlert] = useState(false);
@@ -106,6 +114,16 @@ export default function TransportistaView({
   const score = empresa?.score_plataforma;
   const evaluaciones = empresa?.total_evaluaciones ?? 0;
 
+  const variacion =
+    ingresosMesAnterior > 0
+      ? Math.round(
+          ((ingresosMes - ingresosMesAnterior) / ingresosMesAnterior) * 100
+        )
+      : null;
+  const ofertasPendientes = misOfertas.filter(
+    (o) => o.estado === "pendiente"
+  ).length;
+
   return (
     <div className="flex" style={{ minHeight: "calc(100vh - 56px)" }}>
       <Sidebar
@@ -147,6 +165,15 @@ export default function TransportistaView({
             sub="cargas completadas"
           />
           <StatCard
+            label="Ingresos mes"
+            value={`Q ${ingresosMes.toLocaleString("es-GT")}`}
+            sub={
+              variacion != null
+                ? `${variacion >= 0 ? "+" : ""}${variacion}% vs mes anterior`
+                : "Sin datos del mes anterior"
+            }
+          />
+          <StatCard
             label="Score plataforma"
             value={
               score != null ? (
@@ -164,41 +191,60 @@ export default function TransportistaView({
                 : "Sin evaluaciones aún"
             }
           />
-          <StatCard
-            label="Empresa"
-            value={
-              <span className="text-[15px] font-semibold truncate">
-                {empresa?.nombre ?? "—"}
-              </span>
-            }
-            sub="cuenta activa"
-          />
         </div>
 
         {/* Section header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-[15px] font-semibold text-gray-800">
-            Cargas disponibles
-          </h2>
-          <div className="flex gap-1.5">
-            {FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={`px-3 py-1 rounded-full text-[12px] border transition-all ${
-                  filter === f.value
-                    ? "bg-teal-50 border-teal-100 text-teal-600"
-                    : "bg-white border-[rgba(68,68,65,0.12)] text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div className="flex gap-1">
+            <button
+              onClick={() => setTab("disponibles")}
+              className={`px-3 py-1.5 rounded-md text-[14px] font-semibold transition-colors ${
+                tab === "disponibles"
+                  ? "text-gray-800"
+                  : "text-gray-200 hover:text-gray-400"
+              }`}
+            >
+              Cargas disponibles
+            </button>
+            <button
+              onClick={() => setTab("ofertas")}
+              className={`px-3 py-1.5 rounded-md text-[14px] font-semibold transition-colors ${
+                tab === "ofertas"
+                  ? "text-gray-800"
+                  : "text-gray-200 hover:text-gray-400"
+              }`}
+            >
+              Mis ofertas
+              {ofertasPendientes > 0 && (
+                <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-semibold">
+                  {ofertasPendientes}
+                </span>
+              )}
+            </button>
           </div>
+          {tab === "disponibles" && (
+            <div className="flex gap-1.5">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={`px-3 py-1 rounded-full text-[12px] border transition-all ${
+                    filter === f.value
+                      ? "bg-teal-50 border-teal-100 text-teal-600"
+                      : "bg-white border-[rgba(68,68,65,0.12)] text-gray-400 hover:text-gray-600"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Cargas list */}
-        {filtered.length === 0 ? (
+        {/* Content */}
+        {tab === "ofertas" ? (
+          <MisOfertas ofertas={misOfertas} />
+        ) : filtered.length === 0 ? (
           <EmptyState filter={filter} />
         ) : (
           filtered.map((carga) => (
