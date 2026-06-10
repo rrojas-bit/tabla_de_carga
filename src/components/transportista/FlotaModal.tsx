@@ -117,45 +117,30 @@ export default function FlotaModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <label className="block text-[12px] text-gray-400 mb-1">
-                    Marca
-                  </label>
-                  <input
-                    type="text"
-                    name="marca"
-                    placeholder="Ej. Kenworth"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] text-gray-400 mb-1">
-                    Modelo
-                  </label>
-                  <input
-                    type="text"
-                    name="modelo"
-                    placeholder="Ej. T680"
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-              <div className="mb-3">
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
                 <label className="block text-[12px] text-gray-400 mb-1">
-                  Año
+                  Marca
                 </label>
                 <input
-                  type="number"
-                  name="anno"
-                  min={1980}
-                  max={new Date().getFullYear() + 1}
-                  placeholder="Ej. 2019"
+                  type="text"
+                  name="marca"
+                  placeholder="Ej. Kenworth"
                   className={inputCls}
                 />
               </div>
-            </>
+              <div>
+                <label className="block text-[12px] text-gray-400 mb-1">
+                  Modelo
+                </label>
+                <input
+                  type="text"
+                  name="modelo"
+                  placeholder="Ej. T680"
+                  className={inputCls}
+                />
+              </div>
+            </div>
           )}
 
           <div className="flex gap-2 mt-4">

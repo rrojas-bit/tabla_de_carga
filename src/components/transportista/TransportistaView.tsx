@@ -87,7 +87,7 @@ export default function TransportistaView({
         id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso, mercancia,
         tarifa_referencia, destino_direccion, fecha_disponible, naviera, estado,
         puerto:puertos(id, nombre, codigo),
-        bids(count)
+        bids!bids_carga_id_fkey(count)
       `)
       .in("estado", ["publicada", "en_subasta"])
       .order("created_at", { ascending: false })
