@@ -36,6 +36,17 @@ export default async function TransportistaPage() {
     );
   }
 
+  const inicioMes = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+  );
+  const inicioMesAnterior = new Date(
+    inicioMes.getFullYear(),
+    inicioMes.getMonth() - 1,
+    1
+  );
+
   // Parallel data fetching
   const [
     empresaRes,
@@ -44,6 +55,8 @@ export default async function TransportistaPage() {
     perfilRes,
     cargasRes,
     statsRes,
+    misOfertasRes,
+    ingresosRes,
   ] = await Promise.all([
     supabase
       .from("empresas")
@@ -88,11 +101,41 @@ export default async function TransportistaPage() {
       .select("id")
       .eq("transportista_asignado_id", profile.empresa_id)
       .in("estado", ["en_transito", "entregada"])
-      .gte(
-        "updated_at",
-        new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-      ),
+      .gte("updated_at", inicioMes.toISOString()),
+
+    // Mis ofertas: bids made by this empresa with carga info
+    supabase
+      .from("bids")
+      .select(`
+        id, monto, estado, created_at, nota,
+        carga:cargas(
+          id, numero, tipo_operacion, tipo_contenedor, destino_direccion,
+          estado, fecha_disponible,
+          puerto:puertos(nombre)
+        )
+      `)
+      .eq("empresa_id", profile.empresa_id)
+      .in("estado", ["pendiente", "aceptada", "rechazada"])
+      .order("created_at", { ascending: false })
+      .limit(20),
+
+    // Ingresos: accepted bids this month + last month
+    supabase
+      .from("bids")
+      .select("monto, updated_at")
+      .eq("empresa_id", profile.empresa_id)
+      .eq("estado", "aceptada")
+      .gte("updated_at", inicioMesAnterior.toISOString()),
   ]);
+
+  const ingresosMes =
+    ingresosRes.data
+      ?.filter((b) => new Date(b.updated_at) >= inicioMes)
+      .reduce((sum, b) => sum + b.monto, 0) ?? 0;
+  const ingresosMesAnterior =
+    ingresosRes.data
+      ?.filter((b) => new Date(b.updated_at) < inicioMes)
+      .reduce((sum, b) => sum + b.monto, 0) ?? 0;
 
   return (
     <TransportistaView
@@ -103,6 +146,9 @@ export default async function TransportistaPage() {
       autoAsignacion={perfilRes.data?.auto_asignacion_activa ?? false}
       cargas={(cargasRes.data ?? []) as unknown as CargaRow[]}
       statsCargas={statsRes.data?.length ?? 0}
+      misOfertas={(misOfertasRes.data ?? []) as unknown as MiOferta[]}
+      ingresosMes={ingresosMes}
+      ingresosMesAnterior={ingresosMesAnterior}
     />
   );
 }
@@ -122,4 +168,22 @@ export type CargaRow = {
   estado: string;
   puerto: { id: string; nombre: string; codigo: string } | null;
   bids: Array<{ count: number }>;
+};
+
+export type MiOferta = {
+  id: string;
+  monto: number;
+  estado: "pendiente" | "aceptada" | "rechazada" | "retirada";
+  created_at: string;
+  nota: string | null;
+  carga: {
+    id: string;
+    numero: string | null;
+    tipo_operacion: "importacion" | "exportacion";
+    tipo_contenedor: string;
+    destino_direccion: string;
+    estado: string;
+    fecha_disponible: string;
+    puerto: { nombre: string } | null;
+  } | null;
 };

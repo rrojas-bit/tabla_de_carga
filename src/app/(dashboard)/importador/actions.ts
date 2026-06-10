@@ -37,12 +37,16 @@ export async function publishCarga(formData: FormData) {
     return { error: "Completa todos los campos obligatorios" };
   }
 
+  // Umbral legal de sobrepeso: 21 TM de carga neta (Acuerdo Gubernativo 379-2010)
+  const sobrepeso = peso_tm != null && peso_tm > 21;
+
   const { error } = await supabase.from("cargas").insert({
     cliente_empresa_id: profile.empresa_id,
     tipo_operacion,
     puerto_id,
     tipo_contenedor,
     peso_tm,
+    sobrepeso,
     naviera,
     destino_direccion,
     fecha_disponible,
@@ -137,6 +141,50 @@ export async function acceptBid(bidId: string, cargaId: string) {
       `🎉 *ContainerGT* — ¡Tu oferta fue aceptada!\n\nCarga: *#${numero}*\nRuta: ${ruta}\n\nInicia sesión para ver los detalles y coordinar la recogida.`
     );
   }
+
+  revalidatePath("/importador");
+  return { success: true };
+}
+
+export async function cancelCarga(cargaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("empresa_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.empresa_id) return { error: "No se encontró empresa" };
+
+  // Only cancel own cargas that are not yet assigned
+  const { data: carga, error: fetchError } = await supabase
+    .from("cargas")
+    .select("id, estado")
+    .eq("id", cargaId)
+    .eq("cliente_empresa_id", profile.empresa_id)
+    .single();
+
+  if (fetchError || !carga) return { error: "Carga no encontrada o sin permiso" };
+  if (!["publicada", "en_subasta"].includes(carga.estado)) {
+    return { error: "Solo puedes cancelar cargas sin transportista asignado" };
+  }
+
+  const [updateCarga, rejectBids] = await Promise.all([
+    supabase.from("cargas").update({ estado: "cancelada" }).eq("id", cargaId),
+    supabase
+      .from("bids")
+      .update({ estado: "rechazada" })
+      .eq("carga_id", cargaId)
+      .eq("estado", "pendiente"),
+  ]);
+
+  if (updateCarga.error) return { error: updateCarga.error.message };
+  if (rejectBids.error) return { error: rejectBids.error.message };
 
   revalidatePath("/importador");
   return { success: true };
