@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
 import PublicarCargaForm from "./PublicarCargaForm";
 import BidsPanel from "./BidsPanel";
 import { cancelCarga } from "@/app/(dashboard)/importador/actions";
@@ -56,6 +58,9 @@ export default function ImportadorView({ puertos, misCargas }: Props) {
     if (result?.success) {
       setCancelled((prev) => new Set(prev).add(cargaId));
       if (selectedCargaId === cargaId) setSelectedCargaId(null);
+      toast.success("Carga cancelada — ofertas pendientes rechazadas");
+    } else if (result?.error) {
+      toast.error(result.error);
     }
     setCancelling(null);
   }
@@ -110,6 +115,13 @@ export default function ImportadorView({ puertos, misCargas }: Props) {
                           ? `${c.bids[0].count} ${c.bids[0].count === 1 ? "oferta" : "ofertas"}`
                           : "Sin ofertas aún"}
                       </span>
+                      <Link
+                        href={`/importador/carga/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="ml-auto text-teal-600 hover:underline"
+                      >
+                        Ver detalle
+                      </Link>
                       {cancelable && (
                         <button
                           onClick={(e) => {
@@ -117,7 +129,7 @@ export default function ImportadorView({ puertos, misCargas }: Props) {
                             handleCancel(c.id);
                           }}
                           disabled={cancelling === c.id}
-                          className="ml-auto text-coral-600 hover:underline disabled:opacity-60"
+                          className="text-coral-600 hover:underline disabled:opacity-60"
                         >
                           {cancelling === c.id ? "Cancelando…" : "Cancelar"}
                         </button>

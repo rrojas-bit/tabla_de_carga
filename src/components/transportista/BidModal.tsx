@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { toast } from "sonner";
 import { submitBid } from "@/app/(dashboard)/transportista/actions";
 import type { CargaRow } from "@/app/(dashboard)/transportista/page";
 
@@ -63,6 +64,7 @@ export default function BidModal({ carga, flota, onClose }: Props) {
       return;
     }
 
+    toast.success("Oferta enviada — te notificaremos si es aceptada");
     onClose();
   }
 

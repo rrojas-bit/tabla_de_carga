@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMaxEtapa } from "@/lib/etapas";
 
 export async function avanzarEtapa(movimientoId: string, etapaActual: number) {
   const supabase = await createClient();
@@ -12,13 +13,13 @@ export async function avanzarEtapa(movimientoId: string, etapaActual: number) {
 
   const { data: mov } = await supabase
     .from("movimientos")
-    .select("id, etapa_actual, historial, tipo_flujo")
+    .select("id, etapa_actual, historial, tipo_flujo, carga_id")
     .eq("id", movimientoId)
     .single();
 
   if (!mov) return { error: "Movimiento no encontrado" };
 
-  const maxEtapa = 5; // 6 stages, index 0-5
+  const maxEtapa = getMaxEtapa(mov.tipo_flujo);
   if (etapaActual >= maxEtapa) return { error: "Viaje ya completado" };
 
   const nuevaEtapa = etapaActual + 1;
@@ -42,20 +43,12 @@ export async function avanzarEtapa(movimientoId: string, etapaActual: number) {
 
   if (error) return { error: error.message };
 
-  // If last stage (5), update carga to entregada
-  if (nuevaEtapa === maxEtapa) {
-    const { data: movData } = await supabase
-      .from("movimientos")
-      .select("carga_id")
-      .eq("id", movimientoId)
-      .single();
-
-    if (movData?.carga_id) {
-      await supabase
-        .from("cargas")
-        .update({ estado: "entregada" })
-        .eq("id", movData.carga_id);
-    }
+  // Última etapa: la carga queda entregada
+  if (nuevaEtapa === maxEtapa && mov.carga_id) {
+    await supabase
+      .from("cargas")
+      .update({ estado: "entregada" })
+      .eq("id", mov.carga_id);
   }
 
   revalidatePath("/piloto");
