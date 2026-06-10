@@ -86,7 +86,7 @@ export default async function TransportistaPage() {
     supabase
       .from("cargas")
       .select(`
-        id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso,
+        id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso, mercancia,
         tarifa_referencia, destino_direccion, fecha_disponible, naviera, estado,
         puerto:puertos(id, nombre, codigo),
         bids(count)
@@ -161,6 +161,7 @@ export type CargaRow = {
   tipo_contenedor: string;
   peso_tm: number | null;
   sobrepeso: boolean | null;
+  mercancia: string | null;
   tarifa_referencia: number | null;
   destino_direccion: string;
   fecha_disponible: string;

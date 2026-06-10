@@ -13,7 +13,16 @@ const config: Config = {
       white: "#ffffff",
       black: "#000000",
       bg: "#f7f6f3",
+      // NOTA: "teal" es históricamente azul (#1B4FBF). Usar "primary" en código
+      // nuevo; "teal" se mantiene como alias hasta migrar los usos existentes.
       teal: {
+        50: "#EEF3FC",
+        100: "#C2D4F0",
+        400: "#1B4FBF",
+        600: "#153A91",
+        800: "#0F2766",
+      },
+      primary: {
         50: "#EEF3FC",
         100: "#C2D4F0",
         400: "#1B4FBF",

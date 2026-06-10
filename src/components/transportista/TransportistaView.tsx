@@ -73,9 +73,10 @@ export default function TransportistaView({
   const [tab, setTab] = useState<"disponibles" | "ofertas">("disponibles");
   const [bidCarga, setBidCarga] = useState<CargaRow | null>(null);
   const [cargas, setCargas] = useState<CargaRow[]>(initialCargas);
-  const [newCargaAlert, setNewCargaAlert] = useState(false);
+  const [newCargasCount, setNewCargasCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialCargas.length >= 30);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   async function loadMore() {
     setLoadingMore(true);
@@ -83,7 +84,7 @@ export default function TransportistaView({
     const { data } = await supabase
       .from("cargas")
       .select(`
-        id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso,
+        id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso, mercancia,
         tarifa_referencia, destino_direccion, fecha_disponible, naviera, estado,
         puerto:puertos(id, nombre, codigo),
         bids(count)
@@ -117,10 +118,9 @@ export default function TransportistaView({
           setCargas((prev) => {
             const already = prev.find((c) => c.id === payload.new.id);
             if (already) return prev;
+            setNewCargasCount((n) => n + 1);
             return [payload.new as unknown as CargaRow, ...prev];
           });
-          setNewCargaAlert(true);
-          setTimeout(() => setNewCargaAlert(false), 5000);
         }
       )
       .subscribe();
@@ -187,20 +187,44 @@ export default function TransportistaView({
     (o) => o.estado === "pendiente"
   ).length;
 
+  const loadMoreBtn = hasMore && tab === "disponibles" && (
+    <button
+      onClick={loadMore}
+      disabled={loadingMore}
+      className="w-full py-3 mt-2 bg-white border border-[rgba(68,68,65,0.12)] rounded-lg text-[13px] text-gray-400 hover:text-teal-600 hover:border-teal-100 transition-colors disabled:opacity-60"
+    >
+      {loadingMore ? "Cargando…" : "Cargar más cargas"}
+    </button>
+  );
+
   return (
     <div className="flex" style={{ minHeight: "calc(100vh - 56px)" }}>
       <Sidebar
         flota={flota}
         tarifas={tarifas}
         autoAsignacion={autoAsignacion}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       {/* Main content */}
-      <main className="flex-1 p-6 bg-bg overflow-y-auto">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 bg-bg overflow-y-auto">
+        {/* Mobile: open sidebar (flota/tarifas) */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="md:hidden mb-4 w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-[rgba(68,68,65,0.12)] rounded-lg text-[13px] font-semibold text-gray-600"
+        >
+          <i className="ti ti-truck text-[16px] text-teal-400" aria-hidden="true" />
+          Mi flota y tarifas
+        </button>
+
         {/* Pending approval banner */}
         {isPendiente && (
           <div className="mb-5 p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
-            <i className="ti ti-clock-hour-4 text-amber-400 text-xl flex-shrink-0 mt-0.5" />
+            <i
+              className="ti ti-clock-hour-4 text-amber-400 text-xl flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
             <div>
               <p className="text-[13px] font-semibold text-amber-600">
                 Cuenta en revisión
@@ -212,16 +236,27 @@ export default function TransportistaView({
           </div>
         )}
 
-        {/* New carga Realtime alert */}
-        {newCargaAlert && (
-          <div className="mb-4 p-3 bg-teal-50 border border-teal-100 rounded-md flex items-center gap-2 text-[13px] text-teal-600 font-medium animate-pulse">
-            <i className="ti ti-bell-ringing" />
-            Nueva carga publicada — aparece al inicio de la lista
+        {/* New cargas Realtime alert — persists until dismissed */}
+        {newCargasCount > 0 && (
+          <div className="mb-4 p-3 bg-teal-50 border border-teal-100 rounded-md flex items-center gap-2 text-[13px] text-teal-600 font-medium">
+            <i className="ti ti-bell-ringing" aria-hidden="true" />
+            <span className="flex-1">
+              {newCargasCount === 1
+                ? "1 carga nueva publicada — aparece al inicio de la lista"
+                : `${newCargasCount} cargas nuevas publicadas — aparecen al inicio de la lista`}
+            </span>
+            <button
+              onClick={() => setNewCargasCount(0)}
+              className="text-teal-600 hover:text-teal-800 p-0.5"
+              aria-label="Descartar aviso"
+            >
+              <i className="ti ti-x text-[14px]" aria-hidden="true" />
+            </button>
           </div>
         )}
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <StatCard
             label="Este mes"
             value={statsCargas.toString()}
@@ -235,6 +270,7 @@ export default function TransportistaView({
                 ? `${variacion >= 0 ? "+" : ""}${variacion}% vs mes anterior`
                 : "Sin datos del mes anterior"
             }
+            subTone={variacion != null && variacion < 0 ? "negative" : "positive"}
           />
           <StatCard
             label="Score plataforma"
@@ -257,14 +293,14 @@ export default function TransportistaView({
         </div>
 
         {/* Section header */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <div className="flex gap-1">
             <button
               onClick={() => setTab("disponibles")}
               className={`px-3 py-1.5 rounded-md text-[14px] font-semibold transition-colors ${
                 tab === "disponibles"
                   ? "text-gray-800"
-                  : "text-gray-200 hover:text-gray-400"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
               Cargas disponibles
@@ -274,7 +310,7 @@ export default function TransportistaView({
               className={`px-3 py-1.5 rounded-md text-[14px] font-semibold transition-colors ${
                 tab === "ofertas"
                   ? "text-gray-800"
-                  : "text-gray-200 hover:text-gray-400"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
               Mis ofertas
@@ -286,12 +322,12 @@ export default function TransportistaView({
             </button>
           </div>
           {tab === "disponibles" && (
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mb-1">
               {FILTERS.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-3 py-1 rounded-full text-[12px] border transition-all ${
+                  className={`px-3 py-1 rounded-full text-[12px] border transition-all whitespace-nowrap flex-shrink-0 ${
                     filter === f.value
                       ? "bg-teal-50 border-teal-100 text-teal-600"
                       : "bg-white border-[rgba(68,68,65,0.12)] text-gray-400 hover:text-gray-600"
@@ -308,7 +344,10 @@ export default function TransportistaView({
         {tab === "ofertas" ? (
           <MisOfertas ofertas={misOfertas} />
         ) : filtered.length === 0 ? (
-          <EmptyState filter={filter} />
+          <>
+            <EmptyState filter={filter} hasMore={hasMore} />
+            {loadMoreBtn}
+          </>
         ) : (
           <>
             {filtered.map((carga) => (
@@ -316,17 +355,10 @@ export default function TransportistaView({
                 key={carga.id}
                 carga={carga}
                 onBid={(c) => setBidCarga(c)}
+                disabled={isPendiente}
               />
             ))}
-            {hasMore && (
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                className="w-full py-3 mt-2 bg-white border border-[rgba(68,68,65,0.12)] rounded-lg text-[13px] text-gray-400 hover:text-teal-600 hover:border-teal-100 transition-colors disabled:opacity-60"
-              >
-                {loadingMore ? "Cargando…" : "Cargar más cargas"}
-              </button>
-            )}
+            {loadMoreBtn}
           </>
         )}
       </main>
@@ -347,10 +379,12 @@ function StatCard({
   label,
   value,
   sub,
+  subTone = "positive",
 }: {
   label: string;
   value: React.ReactNode;
   sub: string;
+  subTone?: "positive" | "negative";
 }) {
   return (
     <div className="bg-white rounded-md border border-[rgba(68,68,65,0.12)] px-4 py-3.5">
@@ -358,12 +392,18 @@ function StatCard({
       <p className="text-[22px] font-semibold text-gray-800 leading-tight">
         {value}
       </p>
-      <p className="text-[11px] text-teal-400 mt-0.5">{sub}</p>
+      <p
+        className={`text-[11px] mt-0.5 ${
+          subTone === "negative" ? "text-coral-600" : "text-teal-400"
+        }`}
+      >
+        {sub}
+      </p>
     </div>
   );
 }
 
-function EmptyState({ filter }: { filter: Filter }) {
+function EmptyState({ filter, hasMore }: { filter: Filter; hasMore: boolean }) {
   const msgs: Record<Filter, string> = {
     todas: "No hay cargas disponibles en este momento",
     importacion: "No hay importaciones disponibles",
@@ -373,10 +413,12 @@ function EmptyState({ filter }: { filter: Filter }) {
 
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <i className="ti ti-box-off text-5xl text-gray-100 mb-3 block" />
+      <i className="ti ti-box-off text-5xl text-gray-100 mb-3 block" aria-hidden="true" />
       <p className="text-sm text-gray-400 font-medium">{msgs[filter]}</p>
-      <p className="text-xs text-gray-200 mt-1.5">
-        Las cargas se actualizan en tiempo real — vuelve pronto
+      <p className="text-xs text-gray-400 mt-1.5">
+        {hasMore && filter !== "todas"
+          ? "Puede haber más en cargas anteriores — usa «Cargar más»"
+          : "Las cargas se actualizan en tiempo real — vuelve pronto"}
       </p>
     </div>
   );

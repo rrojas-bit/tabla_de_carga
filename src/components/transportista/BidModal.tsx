@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { submitBid } from "@/app/(dashboard)/transportista/actions";
 import type { CargaRow } from "@/app/(dashboard)/transportista/page";
+import { CONTENEDOR_LABEL } from "@/lib/labels";
 
 type FlotaItem = {
   id: string;
@@ -24,20 +25,23 @@ const TIEMPO_LABELS: Record<string, string> = {
   mismo_dia: "Respondo el mismo día",
 };
 
-const CONTENEDOR_LABEL: Record<string, string> = {
-  "20_dry": "20' Dry",
-  "40_dry": "40' Dry",
-  "40_hc": "40' HC",
-  reefer: "Reefer",
-  open_top: "Open Top",
-  flat_rack: "Flat Rack",
-  "45": "45'",
-};
+const inputCls =
+  "w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50";
 
 export default function BidModal({ carga, flota, onClose }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
+  const montoRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    montoRef.current?.focus();
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   if (!carga) return null;
 
@@ -73,15 +77,21 @@ export default function BidModal({ carga, flota, onClose }: Props) {
       className="fixed inset-0 bg-black/30 z-[999] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-6 w-full max-w-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bid-modal-title"
+        className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto"
+      >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-semibold text-gray-800">
+          <h2 id="bid-modal-title" className="text-base font-semibold text-gray-800">
             Hacer oferta
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-200 hover:text-gray-400 text-xl leading-none"
+            aria-label="Cerrar"
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1"
           >
             ×
           </button>
@@ -95,6 +105,12 @@ export default function BidModal({ carga, flota, onClose }: Props) {
             </strong>{" "}
             {carga.numero ? `· #${carga.numero}` : ""}
           </p>
+          {carga.mercancia && (
+            <p>
+              <strong className="text-gray-800">Mercancía:</strong>{" "}
+              {carga.mercancia}
+            </p>
+          )}
           <p>
             <strong className="text-gray-800">Ruta:</strong> {rutaLabel}
           </p>
@@ -125,10 +141,12 @@ export default function BidModal({ carga, flota, onClose }: Props) {
           <input type="hidden" name="carga_id" value={carga.id} />
 
           <div className="mb-3">
-            <label className="block text-[12px] text-gray-400 mb-1">
+            <label htmlFor="bid-monto" className="block text-[12px] text-gray-400 mb-1">
               Tu oferta (Q)
             </label>
             <input
+              id="bid-monto"
+              ref={montoRef}
               type="number"
               name="monto"
               required
@@ -137,11 +155,11 @@ export default function BidModal({ carga, flota, onClose }: Props) {
               placeholder={
                 carga.tarifa_referencia
                   ? `Ej. ${carga.tarifa_referencia}`
-                  : "Ej. 3,200"
+                  : "Ej. 3200"
               }
-              className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-100"
+              className={inputCls}
             />
-            <p className="text-[11px] text-gray-200 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               {carga.tarifa_referencia
                 ? `Tarifa de referencia: Q ${carga.tarifa_referencia.toLocaleString("es-GT")}`
                 : "El cliente evalúa y elige la mejor oferta"}
@@ -150,13 +168,10 @@ export default function BidModal({ carga, flota, onClose }: Props) {
 
           {cabezalesLibres.length > 0 && (
             <div className="mb-3">
-              <label className="block text-[12px] text-gray-400 mb-1">
+              <label htmlFor="bid-cabezal" className="block text-[12px] text-gray-400 mb-1">
                 Cabezal disponible (opcional)
               </label>
-              <select
-                name="cabezal_id"
-                className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-100"
-              >
+              <select id="bid-cabezal" name="cabezal_id" className={inputCls}>
                 <option value="">Sin especificar</option>
                 {cabezalesLibres.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -168,13 +183,14 @@ export default function BidModal({ carga, flota, onClose }: Props) {
           )}
 
           <div className="mb-3">
-            <label className="block text-[12px] text-gray-400 mb-1">
+            <label htmlFor="bid-tiempo" className="block text-[12px] text-gray-400 mb-1">
               Tiempo de respuesta
             </label>
             <select
+              id="bid-tiempo"
               name="tiempo_respuesta"
               defaultValue="menos_2h"
-              className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-100"
+              className={inputCls}
             >
               {Object.entries(TIEMPO_LABELS).map(([val, label]) => (
                 <option key={val} value={val}>
@@ -185,14 +201,15 @@ export default function BidModal({ carga, flota, onClose }: Props) {
           </div>
 
           <div className="mb-4">
-            <label className="block text-[12px] text-gray-400 mb-1">
+            <label htmlFor="bid-nota" className="block text-[12px] text-gray-400 mb-1">
               Nota (opcional)
             </label>
             <textarea
+              id="bid-nota"
               name="nota"
               rows={2}
               placeholder="Cualquier detalle relevante para el cliente…"
-              className="w-full px-3 py-2 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-100 resize-none"
+              className={`${inputCls} resize-none`}
             />
           </div>
 

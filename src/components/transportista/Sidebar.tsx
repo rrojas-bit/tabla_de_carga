@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import {
   toggleAutoAsignacion,
@@ -10,6 +10,7 @@ import {
   deleteTarifaRuta,
 } from "@/app/(dashboard)/transportista/actions";
 import FlotaModal from "./FlotaModal";
+import { CHASSIS_LABEL } from "@/lib/labels";
 
 type FlotaItem = {
   id: string;
@@ -32,6 +33,8 @@ type Props = {
   flota: FlotaItem[];
   tarifas: TarifaRuta[];
   autoAsignacion: boolean;
+  open?: boolean;
+  onClose?: () => void;
 };
 
 const ESTADO_BADGE: Record<string, string> = {
@@ -52,17 +55,13 @@ const ESTADOS: Array<"libre" | "en_ruta" | "mantenimiento"> = [
   "mantenimiento",
 ];
 
-const CHASSIS_LABEL: Record<string, string> = {
-  "20_dry": "Chassis 20'",
-  "40_dry": "Chassis 40'",
-  "40_hc": "Chassis 40' HC",
-  reefer: "Chassis Reefer",
-  open_top: "Chassis Open Top",
-  flat_rack: "Flat Rack",
-  "3_ejes": "Chassis 3 ejes",
-};
-
-export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
+export default function Sidebar({
+  flota,
+  tarifas,
+  autoAsignacion,
+  open = false,
+  onClose,
+}: Props) {
   const [autoOn, setAutoOn] = useState(autoAsignacion);
   const [isPending, startTransition] = useTransition();
   const [showFlotaModal, setShowFlotaModal] = useState(false);
@@ -71,16 +70,20 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
   function handleToggle() {
     const newVal = !autoOn;
     setAutoOn(newVal);
-    startTransition(() => {
-      toggleAutoAsignacion(newVal);
+    startTransition(async () => {
+      const result = await toggleAutoAsignacion(newVal);
+      if (result?.error) {
+        setAutoOn(!newVal);
+        toast.error(result.error);
+      }
     });
   }
 
   const cabezales = flota.filter((f) => f.tipo === "cabezal");
   const chassis = flota.filter((f) => f.tipo === "chassis");
 
-  return (
-    <aside className="w-[260px] min-w-[260px] bg-white border-r border-[rgba(68,68,65,0.12)] p-[18px] overflow-y-auto h-[calc(100vh-56px)] sticky top-[56px]">
+  const content = (
+    <>
       {/* Auto-asignación toggle */}
       <div className="mb-5">
         <div
@@ -105,6 +108,9 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
           <button
             onClick={handleToggle}
             disabled={isPending}
+            role="switch"
+            aria-checked={autoOn}
+            aria-label="Auto-asignación de cargas"
             className={`w-9 h-[21px] rounded-full relative transition-colors flex-shrink-0 ${
               autoOn ? "bg-teal-400" : "bg-gray-200"
             }`}
@@ -121,14 +127,14 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
       {/* Flota */}
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2">
-          <p className="text-[10px] font-semibold text-gray-200 uppercase tracking-[0.7px]">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.7px]">
             Mi flota
           </p>
           <button
             onClick={() => setShowFlotaModal(true)}
             className="text-[11px] text-teal-600 font-semibold hover:underline flex items-center gap-0.5"
           >
-            <i className="ti ti-plus text-[12px]" />
+            <i className="ti ti-plus text-[12px]" aria-hidden="true" />
             Agregar
           </button>
         </div>
@@ -136,7 +142,7 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
         {cabezales.length > 0 && (
           <>
             {cabezales.length > 0 && chassis.length > 0 && (
-              <p className="text-[10px] text-gray-200 uppercase tracking-wide mb-1.5">
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5">
                 Cabezales
               </p>
             )}
@@ -149,7 +155,7 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
         {chassis.length > 0 && (
           <div className={cabezales.length > 0 ? "mt-2" : ""}>
             {cabezales.length > 0 && (
-              <p className="text-[10px] text-gray-200 uppercase tracking-wide mb-1.5 mt-2">
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 mt-2">
                 Chassis
               </p>
             )}
@@ -161,8 +167,8 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
 
         {flota.length === 0 && (
           <div className="py-4 text-center">
-            <i className="ti ti-truck-off text-2xl text-gray-100 block mb-1.5" />
-            <p className="text-[11px] text-gray-200 mb-2">
+            <i className="ti ti-truck-off text-2xl text-gray-100 block mb-1.5" aria-hidden="true" />
+            <p className="text-[11px] text-gray-400 mb-2">
               Sin unidades registradas
             </p>
             <button
@@ -178,14 +184,17 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
       {/* Tarifas mínimas */}
       <div>
         <div className="flex justify-between items-center mb-2">
-          <p className="text-[10px] font-semibold text-gray-200 uppercase tracking-[0.7px]">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.7px]">
             Tarifa mínima por ruta
           </p>
           <button
             onClick={() => setShowTarifaForm((v) => !v)}
             className="text-[11px] text-teal-600 font-semibold hover:underline flex items-center gap-0.5"
           >
-            <i className={`ti ${showTarifaForm ? "ti-x" : "ti-plus"} text-[12px]`} />
+            <i
+              className={`ti ${showTarifaForm ? "ti-x" : "ti-plus"} text-[12px]`}
+              aria-hidden="true"
+            />
             {showTarifaForm ? "Cerrar" : "Agregar"}
           </button>
         </div>
@@ -199,7 +208,7 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
         ))}
 
         {tarifas.length === 0 && !showTarifaForm && (
-          <p className="text-[11px] text-gray-200 text-center py-2">
+          <p className="text-[11px] text-gray-400 text-center py-2">
             Sin tarifas configuradas — se usan para auto-asignación
           </p>
         )}
@@ -208,13 +217,65 @@ export default function Sidebar({ flota, tarifas, autoAsignacion }: Props) {
       {showFlotaModal && (
         <FlotaModal onClose={() => setShowFlotaModal(false)} />
       )}
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile drawer overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <aside
+        className={`fixed left-0 top-0 bottom-0 z-50 w-[280px] bg-white p-[18px] overflow-y-auto transition-transform md:hidden ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-label="Mi flota y tarifas"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-[14px] font-semibold text-gray-800">
+            Mi flota y tarifas
+          </p>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 p-1"
+            aria-label="Cerrar panel"
+          >
+            <i className="ti ti-x text-[18px]" aria-hidden="true" />
+          </button>
+        </div>
+        {content}
+      </aside>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:block w-[260px] min-w-[260px] bg-white border-r border-[rgba(68,68,65,0.12)] p-[18px] overflow-y-auto h-[calc(100vh-56px)] sticky top-[56px]">
+        {content}
+      </aside>
+    </>
   );
 }
 
 function FlotaCard({ item }: { item: FlotaItem }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
   const sub =
     item.tipo === "cabezal"
@@ -241,7 +302,7 @@ function FlotaCard({ item }: { item: FlotaItem }) {
   }
 
   return (
-    <div className="bg-gray-50 rounded-md px-3 py-2 mb-1.5 relative">
+    <div className="bg-gray-50 rounded-md px-3 py-2 mb-1.5 relative" ref={menuRef}>
       <div className="flex justify-between items-center mb-0.5">
         <span className="text-[13px] font-semibold text-gray-800">
           {item.placa}
@@ -249,22 +310,28 @@ function FlotaCard({ item }: { item: FlotaItem }) {
         <button
           onClick={() => setMenuOpen((v) => !v)}
           disabled={busy}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
           className={`text-[11px] px-2 py-0.5 rounded font-medium cursor-pointer ${
             ESTADO_BADGE[item.estado] ?? "bg-gray-100 text-gray-400"
           }`}
           title="Cambiar estado"
         >
           {ESTADO_LABEL[item.estado] ?? item.estado}
-          <i className="ti ti-chevron-down text-[9px] ml-0.5" />
+          <i className="ti ti-chevron-down text-[9px] ml-0.5" aria-hidden="true" />
         </button>
       </div>
       {sub && <p className="text-[11px] text-gray-400">{sub}</p>}
 
       {menuOpen && (
-        <div className="absolute right-2 top-8 bg-white rounded-md border border-gray-100 shadow-lg py-1 z-50 w-36">
+        <div
+          role="menu"
+          className="absolute right-2 top-8 bg-white rounded-md border border-gray-100 shadow-lg py-1 z-50 w-36"
+        >
           {ESTADOS.filter((e) => e !== item.estado).map((e) => (
             <button
               key={e}
+              role="menuitem"
               onClick={() => handleEstado(e)}
               disabled={busy}
               className="w-full text-left px-3 py-1.5 text-[12px] text-gray-600 hover:bg-gray-50"
@@ -273,6 +340,7 @@ function FlotaCard({ item }: { item: FlotaItem }) {
             </button>
           ))}
           <button
+            role="menuitem"
             onClick={handleRemove}
             disabled={busy}
             className="w-full text-left px-3 py-1.5 text-[12px] text-coral-600 hover:bg-coral-50 border-t border-gray-100"
@@ -309,10 +377,11 @@ function TarifaCard({ tarifa }: { tarifa: TarifaRuta }) {
         <button
           onClick={handleDelete}
           disabled={busy}
-          className="text-gray-200 hover:text-coral-600 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="text-gray-400 hover:text-coral-600 sm:text-gray-200 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1"
           title="Eliminar tarifa"
+          aria-label={`Eliminar tarifa ${tarifa.origen} a ${tarifa.destino}`}
         >
-          <i className="ti ti-trash text-[14px]" />
+          <i className="ti ti-trash text-[14px]" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -342,7 +411,7 @@ function TarifaForm({ onDone }: { onDone: () => void }) {
   }
 
   const inputCls =
-    "w-full px-2.5 py-1.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-white text-[12px] text-gray-800 focus:outline-none focus:border-teal-100";
+    "w-full px-2.5 py-1.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-white text-[12px] text-gray-800 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50";
 
   return (
     <form

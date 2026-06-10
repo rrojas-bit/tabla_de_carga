@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { addFlotaUnit } from "@/app/(dashboard)/transportista/actions";
 
 const CHASSIS_OPTIONS = [
@@ -18,6 +18,14 @@ export default function FlotaModal({ onClose }: { onClose: () => void }) {
   const [tipo, setTipo] = useState<"cabezal" | "chassis">("cabezal");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,14 +49,20 @@ export default function FlotaModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 bg-black/30 z-[999] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-6 w-full max-w-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="flota-modal-title"
+        className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-semibold text-gray-800">
+          <h2 id="flota-modal-title" className="text-base font-semibold text-gray-800">
             Agregar unidad
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-200 hover:text-gray-400 text-xl leading-none"
+            aria-label="Cerrar"
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1"
           >
             ×
           </button>
@@ -167,4 +181,4 @@ export default function FlotaModal({ onClose }: { onClose: () => void }) {
 }
 
 const inputCls =
-  "w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-100";
+  "w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-[13px] text-gray-800 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50";
