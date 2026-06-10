@@ -45,7 +45,7 @@ export default async function ImportadorPage() {
         id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso,
         estado, fecha_disponible, destino_direccion,
         puerto:puertos(id, nombre),
-        bids(count)
+        bids!bids_carga_id_fkey(count)
       `)
       .eq("cliente_empresa_id", profile.empresa_id)
       .in("estado", ["publicada", "en_subasta", "asignada", "en_transito"])
