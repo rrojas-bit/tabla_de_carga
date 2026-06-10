@@ -81,7 +81,7 @@ export async function acceptBid(bidId: string, cargaId: string) {
   // Verify ownership
   const { data: carga } = await supabase
     .from("cargas")
-    .select("id, cliente_empresa_id")
+    .select("id, cliente_empresa_id, tipo_operacion")
     .eq("id", cargaId)
     .eq("cliente_empresa_id", profile.empresa_id)
     .single();
@@ -91,7 +91,7 @@ export async function acceptBid(bidId: string, cargaId: string) {
   // Get bid empresa
   const { data: bid } = await supabase
     .from("bids")
-    .select("empresa_id")
+    .select("empresa_id, cabezal_id")
     .eq("id", bidId)
     .single();
 
@@ -119,6 +119,20 @@ export async function acceptBid(bidId: string, cargaId: string) {
   if (updateBid.error) return { error: updateBid.error.message };
   if (updateCarga.error) return { error: updateCarga.error.message };
 
+  // Crear el movimiento del viaje — flujo según tipo de operación (import 6 etapas, export 7)
+  const { error: movError } = await supabase.from("movimientos").insert({
+    carga_id: cargaId,
+    bid_id: bidId,
+    cabezal_id: bid.cabezal_id,
+    tipo_flujo: carga.tipo_operacion,
+    etapa_actual: 0,
+    historial: [
+      { etapa: 0, timestamp: new Date().toISOString(), method: "auto" },
+    ],
+  });
+
+  if (movError) return { error: `Oferta aceptada pero falló el movimiento: ${movError.message}` };
+
   // WhatsApp notification to winning transportista
   const { data: transportistaEmpresa } = await supabase
     .from("empresas")
@@ -143,6 +157,68 @@ export async function acceptBid(bidId: string, cargaId: string) {
   }
 
   revalidatePath("/importador");
+  return { success: true };
+}
+
+export async function updateCarga(cargaId: string, formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("empresa_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.empresa_id) return { error: "No se encontró empresa" };
+
+  const { data: carga } = await supabase
+    .from("cargas")
+    .select("id, estado")
+    .eq("id", cargaId)
+    .eq("cliente_empresa_id", profile.empresa_id)
+    .single();
+
+  if (!carga) return { error: "Carga no encontrada o sin permiso" };
+  if (!["publicada", "en_subasta"].includes(carga.estado)) {
+    return { error: "Solo puedes editar cargas sin transportista asignado" };
+  }
+
+  const peso_raw = formData.get("peso_tm") as string;
+  const peso_tm = peso_raw ? parseFloat(peso_raw) : null;
+  const tarifa_raw = formData.get("tarifa_referencia") as string;
+  const tarifa_referencia = tarifa_raw ? parseFloat(tarifa_raw) : null;
+  const destino_direccion = (formData.get("destino_direccion") as string)?.trim();
+  const fecha_disponible = formData.get("fecha_disponible") as string;
+  const naviera = (formData.get("naviera") as string) || null;
+  const modo_asignacion = formData.get("modo_asignacion") as Enums<"asignacion_modo">;
+  const notas = ((formData.get("notas") as string) || "").trim() || null;
+
+  if (!destino_direccion || !fecha_disponible) {
+    return { error: "Destino y fecha son obligatorios" };
+  }
+
+  const { error } = await supabase
+    .from("cargas")
+    .update({
+      peso_tm,
+      sobrepeso: peso_tm != null && peso_tm > 21,
+      tarifa_referencia,
+      destino_direccion,
+      fecha_disponible,
+      naviera,
+      modo_asignacion,
+      notas,
+    })
+    .eq("id", cargaId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/importador");
+  revalidatePath(`/importador/carga/${cargaId}`);
   return { success: true };
 }
 

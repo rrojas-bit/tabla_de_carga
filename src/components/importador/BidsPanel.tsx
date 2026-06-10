@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { acceptBid, rejectBid } from "@/app/(dashboard)/importador/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { CargaResumen } from "@/app/(dashboard)/importador/page";
@@ -126,7 +127,14 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
   async function handleAccept(bidId: string) {
     if (!carga) return;
     setActing(bidId);
-    await acceptBid(bidId, carga.id);
+    const result = await acceptBid(bidId, carga.id);
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(
+        "Oferta aceptada — transportista notificado y movimiento creado"
+      );
+    }
     await fetchBids(carga.id);
     setActing(null);
   }
@@ -134,7 +142,8 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
   async function handleReject(bidId: string) {
     if (!carga) return;
     setActing(bidId);
-    await rejectBid(bidId);
+    const result = await rejectBid(bidId);
+    if (result?.error) toast.error(result.error);
     await fetchBids(carga.id);
     setActing(null);
   }

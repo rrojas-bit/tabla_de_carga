@@ -1,42 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { avanzarEtapa } from "@/app/(dashboard)/piloto/actions";
+import { ETAPAS_IMPORTACION, ETAPAS_EXPORTACION } from "@/lib/etapas";
 import type { MovimientoFull, FlagRow } from "@/app/(dashboard)/piloto/page";
 
-const ETAPAS_IMPORT = [
-  "En ruta → Puerto",
-  "Retiro de contenedor en puerto",
-  "En ruta → destino",
-  "Llegada a bodega cliente",
-  "Descarga completada",
-  "Entrega confirmada ✓",
-];
+const ETAPAS_IMPORT = [...ETAPAS_IMPORTACION];
+const ETAPAS_EXPORT = [...ETAPAS_EXPORTACION];
 
-const ETAPAS_EXPORT = [
-  "Retiro de chassis / Patio naviera",
-  "En ruta → bodega cliente",
-  "Carga de contenedor en bodega",
-  "En ruta → puerto",
-  "Ingreso a terminal portuaria",
-  "Contenedor entregado en puerto ✓",
-];
-
-const NEXT_LABELS_IMPORT = [
-  "Retiro de contenedor",
-  "En ruta → destino",
-  "Llegada a bodega",
-  "Descarga completada",
-  "Confirmar entrega ✓",
-];
-
-const NEXT_LABELS_EXPORT = [
-  "En ruta → bodega cliente",
-  "Carga en bodega",
-  "En ruta → puerto",
-  "Ingreso a terminal",
-  "Entrega en puerto ✓",
-];
+// Texto del botón = la etapa a la que avanzas (siguiente)
+const NEXT_LABELS_IMPORT = ETAPAS_IMPORT.slice(1);
+const NEXT_LABELS_EXPORT = ETAPAS_EXPORT.slice(1);
 
 const CONTENEDOR_LABEL: Record<string, string> = {
   "20_dry": "20' Dry",
@@ -72,10 +47,25 @@ export default function PilotoView({ movimiento, flags }: Props) {
 
   function handleAvanzar() {
     if (!movimiento || isCompleted) return;
+    const etapaAnterior = etapa;
     const nuevaEtapa = etapa + 1;
     setEtapa(nuevaEtapa); // Optimistic update
-    startTransition(() => {
-      avanzarEtapa(movimiento.id, etapa);
+    startTransition(async () => {
+      const result = await avanzarEtapa(movimiento.id, etapaAnterior);
+      if (result?.error) {
+        setEtapa(etapaAnterior);
+        toast.error(result.error);
+        return;
+      }
+      if (nuevaEtapa >= etapas.length - 1) {
+        toast.success(
+          esImport
+            ? "Entrega confirmada — viaje completado"
+            : "Gate-in completado — viaje finalizado"
+        );
+      } else {
+        toast.success(`Etapa actualizada: ${etapas[nuevaEtapa]}`);
+      }
     });
   }
 

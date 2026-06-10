@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
+import { toast } from "sonner";
 import {
   toggleAutoAsignacion,
   updateFlotaEstado,
@@ -224,14 +225,17 @@ function FlotaCard({ item }: { item: FlotaItem }) {
 
   async function handleEstado(estado: "libre" | "en_ruta" | "mantenimiento") {
     setBusy(true);
-    await updateFlotaEstado(item.id, estado);
+    const result = await updateFlotaEstado(item.id, estado);
+    if (result?.error) toast.error(result.error);
     setMenuOpen(false);
     setBusy(false);
   }
 
   async function handleRemove() {
     setBusy(true);
-    await removeFlotaUnit(item.id);
+    const result = await removeFlotaUnit(item.id);
+    if (result?.error) toast.error(result.error);
+    else toast.success(`Unidad ${item.placa} dada de baja`);
     setMenuOpen(false);
     setBusy(false);
   }
@@ -286,7 +290,8 @@ function TarifaCard({ tarifa }: { tarifa: TarifaRuta }) {
 
   async function handleDelete() {
     setBusy(true);
-    await deleteTarifaRuta(tarifa.id);
+    const result = await deleteTarifaRuta(tarifa.id);
+    if (result?.error) toast.error(result.error);
     setBusy(false);
   }
 

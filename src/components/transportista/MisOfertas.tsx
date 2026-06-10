@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { withdrawBid } from "@/app/(dashboard)/transportista/actions";
 import type { MiOferta } from "@/app/(dashboard)/transportista/page";
 
@@ -35,6 +36,9 @@ export default function MisOfertas({ ofertas }: { ofertas: MiOferta[] }) {
     const result = await withdrawBid(bidId);
     if (result?.success) {
       setHidden((prev) => new Set(prev).add(bidId));
+      toast.success("Oferta retirada");
+    } else if (result?.error) {
+      toast.error(result.error);
     }
     setWithdrawing(null);
   }

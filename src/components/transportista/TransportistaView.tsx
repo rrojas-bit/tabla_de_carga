@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import Sidebar from "./Sidebar";
 import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
@@ -66,13 +68,39 @@ export default function TransportistaView({
   ingresosMes,
   ingresosMesAnterior,
 }: Props) {
+  const router = useRouter();
   const [filter, setFilter] = useState<Filter>("todas");
   const [tab, setTab] = useState<"disponibles" | "ofertas">("disponibles");
   const [bidCarga, setBidCarga] = useState<CargaRow | null>(null);
   const [cargas, setCargas] = useState<CargaRow[]>(initialCargas);
   const [newCargaAlert, setNewCargaAlert] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialCargas.length >= 30);
 
-  // Realtime subscription for new cargas
+  async function loadMore() {
+    setLoadingMore(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("cargas")
+      .select(`
+        id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso,
+        tarifa_referencia, destino_direccion, fecha_disponible, naviera, estado,
+        puerto:puertos(id, nombre, codigo),
+        bids(count)
+      `)
+      .in("estado", ["publicada", "en_subasta"])
+      .order("created_at", { ascending: false })
+      .range(cargas.length, cargas.length + 29);
+
+    const nuevas = ((data ?? []) as unknown as CargaRow[]).filter(
+      (n) => !cargas.find((c) => c.id === n.id)
+    );
+    setCargas((prev) => [...prev, ...nuevas]);
+    setHasMore((data?.length ?? 0) >= 30);
+    setLoadingMore(false);
+  }
+
+  // Realtime: new cargas + bid results for this empresa
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -97,10 +125,45 @@ export default function TransportistaView({
       )
       .subscribe();
 
+    // Notify when a bid of this empresa changes estado
+    let bidsChannel: ReturnType<typeof supabase.channel> | null = null;
+    if (empresa?.id) {
+      bidsChannel = supabase
+        .channel("mis_bids_realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "bids",
+            filter: `empresa_id=eq.${empresa.id}`,
+          },
+          (payload) => {
+            const estado = payload.new.estado as string;
+            const monto = payload.new.monto as number;
+            if (estado === "aceptada") {
+              toast.success(
+                `¡Tu oferta de Q ${monto.toLocaleString("es-GT")} fue aceptada! La carga es tuya.`,
+                { duration: 10000 }
+              );
+              router.refresh();
+            } else if (estado === "rechazada") {
+              toast.info(
+                `Tu oferta de Q ${monto.toLocaleString("es-GT")} no fue seleccionada.`
+              );
+              router.refresh();
+            }
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       supabase.removeChannel(channel);
+      if (bidsChannel) supabase.removeChannel(bidsChannel);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa?.id]);
 
   const isPendiente = empresaEstado === "pendiente_calificacion";
 
@@ -247,13 +310,24 @@ export default function TransportistaView({
         ) : filtered.length === 0 ? (
           <EmptyState filter={filter} />
         ) : (
-          filtered.map((carga) => (
-            <CargaCard
-              key={carga.id}
-              carga={carga}
-              onBid={(c) => setBidCarga(c)}
-            />
-          ))
+          <>
+            {filtered.map((carga) => (
+              <CargaCard
+                key={carga.id}
+                carga={carga}
+                onBid={(c) => setBidCarga(c)}
+              />
+            ))}
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="w-full py-3 mt-2 bg-white border border-[rgba(68,68,65,0.12)] rounded-lg text-[13px] text-gray-400 hover:text-teal-600 hover:border-teal-100 transition-colors disabled:opacity-60"
+              >
+                {loadingMore ? "Cargando…" : "Cargar más cargas"}
+              </button>
+            )}
+          </>
         )}
       </main>
 
