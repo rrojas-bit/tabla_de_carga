@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -31,6 +32,18 @@ export default function TopNav({ profile }: { profile: Profile }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -80,35 +93,49 @@ export default function TopNav({ profile }: { profile: Profile }) {
       </div>
 
       {/* User */}
-      <div className="flex items-center gap-2">
+      <div className="relative" ref={menuRef}>
         {profile && (
-          <>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors"
+          >
             <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-[11px] font-semibold text-teal-600">
               {getInitials(profile.nombre_completo)}
             </div>
-            <span className="text-[13px] text-gray-400 hidden sm:block">
+            <span className="text-[13px] text-gray-500 hidden sm:block">
               {profile.nombre_completo.split(" ")[0]}
             </span>
-          </>
+            <i className="ti ti-chevron-down text-xs text-gray-400" />
+          </button>
         )}
-        <Link
-          href="/billing"
-          title="Planes y facturación"
-          className={`ml-1 transition-colors ${
-            pathname.startsWith("/billing")
-              ? "text-teal-500"
-              : "text-gray-200 hover:text-gray-400"
-          }`}
-        >
-          <i className="ti ti-receipt text-lg" />
-        </Link>
-        <button
-          onClick={handleLogout}
-          title="Cerrar sesión"
-          className="ml-1 text-gray-200 hover:text-gray-400 transition-colors"
-        >
-          <i className="ti ti-logout text-lg" />
-        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
+            {profile && (
+              <div className="px-4 py-2.5 border-b border-gray-100">
+                <p className="text-[13px] font-medium text-gray-800 truncate">
+                  {profile.nombre_completo}
+                </p>
+                <p className="text-[11px] text-gray-400 capitalize">{profile.rol}</p>
+              </div>
+            )}
+            <Link
+              href="/billing"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <i className="ti ti-receipt text-base text-gray-400" />
+              Planes y facturación
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <i className="ti ti-logout text-base" />
+              Cerrar sesión
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );
