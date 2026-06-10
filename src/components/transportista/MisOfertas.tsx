@@ -4,16 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { withdrawBid } from "@/app/(dashboard)/transportista/actions";
 import type { MiOferta } from "@/app/(dashboard)/transportista/page";
-
-const CONTENEDOR_LABEL: Record<string, string> = {
-  "20_dry": "20' Dry",
-  "40_dry": "40' Dry",
-  "40_hc": "40' HC",
-  reefer: "Reefer",
-  open_top: "Open Top",
-  flat_rack: "Flat Rack",
-  "45": "45'",
-};
+import { CONTENEDOR_LABEL } from "@/lib/labels";
 
 const ESTADO_BADGE: Record<string, string> = {
   pendiente: "bg-amber-50 text-amber-600",
@@ -48,11 +39,11 @@ export default function MisOfertas({ ofertas }: { ofertas: MiOferta[] }) {
   if (visible.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <i className="ti ti-gavel text-5xl text-gray-100 mb-3 block" />
+        <i className="ti ti-gavel text-5xl text-gray-100 mb-3 block" aria-hidden="true" />
         <p className="text-sm text-gray-400 font-medium">
           No has hecho ofertas aún
         </p>
-        <p className="text-xs text-gray-200 mt-1.5">
+        <p className="text-xs text-gray-400 mt-1.5">
           Tus ofertas y su estado aparecerán aquí
         </p>
       </div>
@@ -85,7 +76,7 @@ export default function MisOfertas({ ofertas }: { ofertas: MiOferta[] }) {
                   {ESTADO_LABEL[oferta.estado] ?? oferta.estado}
                 </span>
                 {carga?.numero && (
-                  <span className="text-[12px] text-gray-200">
+                  <span className="text-[12px] text-gray-400">
                     #{carga.numero}
                   </span>
                 )}

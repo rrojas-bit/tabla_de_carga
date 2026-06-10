@@ -260,7 +260,7 @@ export async function toggleAutoAsignacion(activa: boolean) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { error: "Sesión expirada" };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -268,12 +268,15 @@ export async function toggleAutoAsignacion(activa: boolean) {
     .eq("id", user.id)
     .single();
 
-  if (!profile?.empresa_id) return;
+  if (!profile?.empresa_id) return { error: "Empresa no configurada" };
 
-  await supabase
+  const { error } = await supabase
     .from("transportista_perfil")
     .update({ auto_asignacion_activa: activa })
     .eq("empresa_id", profile.empresa_id);
 
+  if (error) return { error: "No se pudo actualizar la configuración" };
+
   revalidatePath("/transportista");
+  return { success: true };
 }
