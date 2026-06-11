@@ -61,30 +61,59 @@ export default function TopNav({ profile }: { profile: Profile }) {
   });
 
   return (
-    <nav className="flex items-center justify-between px-6 py-3 bg-white border-b border-[rgba(68,68,65,0.12)] sticky top-0 z-50">
+    <nav
+      className="cgt-glass-light flex items-center justify-between px-[22px] sticky top-0 z-50"
+      style={{ height: "var(--nav-height)" }}
+    >
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-teal-400 rounded-lg flex items-center justify-center">
-          <i className="ti ti-container text-white text-base" />
+      <Link href="/" className="flex items-center gap-2.5">
+        <div
+          className="flex items-center justify-center text-white"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "var(--radius-md)",
+            background: "var(--color-primary)",
+            boxShadow: "var(--elevation-1)",
+          }}
+        >
+          <i className="ti ti-container" style={{ fontSize: 18 }} />
         </div>
-        <span className="text-base font-semibold text-gray-800 tracking-tight">
-          Container<span className="text-teal-400">GT</span>
+        <span
+          className="text-[16px] font-semibold tracking-tight"
+          style={{ color: "var(--text-strong)" }}
+        >
+          Container<span style={{ color: "var(--color-primary)" }}>GT</span>
         </span>
       </Link>
 
-      {/* View tabs */}
-      <div className="flex gap-1 bg-gray-50 rounded-lg p-1">
+      {/* Segmented tab control */}
+      <div
+        className="flex gap-0.5 rounded-[10px] p-[3px]"
+        style={{
+          background: "var(--surface-sunk)",
+          border: "1px solid var(--border-default)",
+        }}
+      >
         {visibleTabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href);
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all ${
+              className="px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-all"
+              style={
                 isActive
-                  ? "bg-white text-gray-800 border border-[rgba(68,68,65,0.12)]"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
+                  ? {
+                      background: "var(--surface-card)",
+                      color: "var(--text-strong)",
+                      boxShadow: "var(--elevation-1)",
+                      border: "1px solid var(--border-default)",
+                    }
+                  : {
+                      color: "var(--text-muted)",
+                    }
+              }
             >
               {tab.label}
             </Link>
@@ -92,50 +121,108 @@ export default function TopNav({ profile }: { profile: Profile }) {
         })}
       </div>
 
-      {/* User */}
-      <div className="relative" ref={menuRef}>
-        {profile && (
-          <button
-            onClick={() => setMenuOpen((o) => !o)}
-            className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-[11px] font-semibold text-teal-600">
-              {getInitials(profile.nombre_completo)}
-            </div>
-            <span className="text-[13px] text-gray-500 hidden sm:block">
-              {profile.nombre_completo.split(" ")[0]}
-            </span>
-            <i className="ti ti-chevron-down text-xs text-gray-400" />
-          </button>
-        )}
+      {/* Right: bell + user */}
+      <div className="flex items-center gap-2">
+        {/* Notification bell */}
+        <button
+          className="relative flex items-center justify-center rounded-[var(--radius-md)] transition-colors hover:bg-[var(--surface-hover)]"
+          style={{
+            width: 34,
+            height: 34,
+            color: "var(--text-muted)",
+            border: "1px solid transparent",
+          }}
+          aria-label="Notificaciones"
+        >
+          <i className="ti ti-bell" style={{ fontSize: 18 }} />
+        </button>
 
-        {menuOpen && (
-          <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
-            {profile && (
-              <div className="px-4 py-2.5 border-b border-gray-100">
-                <p className="text-[13px] font-medium text-gray-800 truncate">
-                  {profile.nombre_completo}
-                </p>
-                <p className="text-[11px] text-gray-400 capitalize">{profile.rol}</p>
-              </div>
-            )}
-            <Link
-              href="/billing"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <i className="ti ti-receipt text-base text-gray-400" />
-              Planes y facturación
-            </Link>
+        {/* User menu */}
+        <div className="relative" ref={menuRef}>
+          {profile && (
             <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 transition-colors"
+              onClick={() => setMenuOpen((o) => !o)}
+              className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-[var(--surface-hover)]"
             >
-              <i className="ti ti-logout text-base" />
-              Cerrar sesión
+              <div
+                className="flex items-center justify-center text-[11px] font-semibold rounded-full"
+                style={{
+                  width: 30,
+                  height: 30,
+                  background: "var(--color-primary-weak)",
+                  color: "var(--color-primary)",
+                }}
+              >
+                {getInitials(profile.nombre_completo)}
+              </div>
+              <div className="hidden sm:flex flex-col items-start leading-tight">
+                <span
+                  className="text-[12px] font-semibold"
+                  style={{ color: "var(--text-strong)" }}
+                >
+                  {profile.nombre_completo.split(" ")[0]}
+                </span>
+                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  {profile.rol}
+                </span>
+              </div>
+              <i
+                className="ti ti-chevron-down text-xs"
+                style={{ fontSize: 13, color: "var(--text-faint)" }}
+              />
             </button>
-          </div>
-        )}
+          )}
+
+          {menuOpen && (
+            <div
+              className="absolute right-0 mt-2 w-52 bg-white rounded-xl py-1 z-50"
+              style={{
+                border: "1px solid var(--border-default)",
+                boxShadow: "var(--elevation-3)",
+              }}
+            >
+              {profile && (
+                <div
+                  className="px-4 py-2.5"
+                  style={{ borderBottom: "1px solid var(--border-default)" }}
+                >
+                  <p
+                    className="text-[13px] font-medium truncate"
+                    style={{ color: "var(--text-strong)" }}
+                  >
+                    {profile.nombre_completo}
+                  </p>
+                  <p
+                    className="text-[11px] capitalize"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {profile.rol}
+                  </p>
+                </div>
+              )}
+              <Link
+                href="/billing"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-[13px] transition-colors hover:bg-[var(--surface-hover)]"
+                style={{ color: "var(--text-body)" }}
+              >
+                <i
+                  className="ti ti-receipt text-base"
+                  style={{ color: "var(--text-muted)" }}
+                />
+                Planes y facturación
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] transition-colors hover:bg-[var(--coral-50)]"
+                style={{ color: "var(--coral-600)" }}
+              >
+                <i className="ti ti-logout text-base" />
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

@@ -12,6 +12,9 @@ const CONTENEDOR_ROLES = [
   { value: "importador", label: "Importador / Exportador" },
 ];
 
+const inputCls =
+  "w-full px-3 py-2.5 rounded-[var(--radius-md)] border text-[13px] focus:outline-none transition-colors";
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -19,7 +22,6 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,10 +36,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setError(
@@ -73,11 +72,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Auto sign-in after successful registration
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (signInError) {
         setError("Cuenta creada. Inicia sesión manualmente.");
@@ -95,48 +90,86 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{
+        background: `
+          radial-gradient(680px 420px at 15% 0%, var(--blue-50), transparent 55%),
+          radial-gradient(620px 460px at 92% 100%, var(--amber-50), transparent 55%),
+          var(--surface-page)
+        `,
+      }}
+    >
+      <div className="w-full max-w-[392px]">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 justify-center mb-8">
-          <div className="w-9 h-9 bg-teal-400 rounded-lg flex items-center justify-center">
-            <i className="ti ti-container text-white text-lg" />
+        <div className="flex items-center justify-center gap-2.5 mb-[22px]">
+          <div
+            className="flex items-center justify-center text-white"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "var(--radius-md)",
+              background: "var(--color-primary)",
+              boxShadow: "var(--elevation-2)",
+            }}
+          >
+            <i className="ti ti-container text-[20px]" />
           </div>
-          <span className="text-xl font-semibold text-gray-800 tracking-tight">
-            Container<span className="text-teal-400">GT</span>
+          <span
+            className="text-[20px] font-semibold tracking-tight"
+            style={{ color: "var(--text-strong)" }}
+          >
+            Container<span style={{ color: "var(--color-primary)" }}>GT</span>
           </span>
         </div>
 
-        <div className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-7">
+        {/* Card */}
+        <div
+          className="rounded-[var(--radius-lg)] p-7"
+          style={{
+            background: "var(--surface-card)",
+            border: "1px solid var(--border-default)",
+            boxShadow: "var(--elevation-3)",
+          }}
+        >
           {/* Mode tabs */}
-          <div className="flex gap-1 bg-gray-50 rounded-lg p-1 mb-6">
+          <div
+            className="flex gap-0.5 rounded-[10px] p-[3px] mb-5"
+            style={{
+              background: "var(--surface-sunk)",
+              border: "1px solid var(--border-default)",
+            }}
+          >
             {(["login", "register"] as Mode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => {
-                  setMode(m);
-                  setError(null);
-                  setSuccess(null);
-                }}
-                className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
+                onClick={() => { setMode(m); setError(null); }}
+                className="flex-1 py-2 rounded-[8px] text-[13px] font-medium transition-all"
+                style={
                   mode === m
-                    ? "bg-white text-gray-800 border border-[rgba(68,68,65,0.12)]"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
+                    ? {
+                        background: "var(--surface-card)",
+                        color: "var(--text-strong)",
+                        boxShadow: "var(--elevation-1)",
+                        border: "1px solid var(--border-default)",
+                      }
+                    : { color: "var(--text-muted)" }
+                }
               >
                 {m === "login" ? "Iniciar sesión" : "Crear cuenta"}
               </button>
             ))}
           </div>
 
-          {success && (
-            <div className="mb-4 p-3 bg-teal-50 border border-teal-100 rounded-md text-sm text-teal-600">
-              {success}
-            </div>
-          )}
-
           {error && (
-            <div className="mb-4 p-3 bg-coral-50 border border-coral-100 rounded-md text-sm text-coral-600">
+            <div
+              className="mb-4 p-3 rounded-[var(--radius-md)] text-[12px]"
+              style={{
+                background: "var(--coral-50)",
+                border: "1px solid var(--coral-100)",
+                color: "var(--coral-600)",
+              }}
+            >
               {error}
             </div>
           )}
@@ -145,7 +178,10 @@ export default function LoginPage() {
             {mode === "register" && (
               <>
                 <div className="mb-3">
-                  <label className="block text-xs text-gray-400 mb-1">
+                  <label
+                    className="block text-[11px] font-medium mb-1"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     Nombre completo
                   </label>
                   <input
@@ -154,29 +190,43 @@ export default function LoginPage() {
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
                     placeholder="Ej. José Recinos"
-                    className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                    className={inputCls}
+                    style={{
+                      background: "var(--surface-sunk)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-strong)",
+                    }}
                   />
                 </div>
 
                 <div className="mb-3">
-                  <label className="block text-xs text-gray-400 mb-1">
+                  <label
+                    className="block text-[11px] font-medium mb-1"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     Tipo de cuenta
                   </label>
                   <select
                     value={rol}
                     onChange={(e) => setRol(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                    className={inputCls}
+                    style={{
+                      background: "var(--surface-sunk)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-strong)",
+                    }}
                   >
                     {CONTENEDOR_ROLES.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
+                      <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="mb-3">
-                  <label className="block text-xs text-gray-400 mb-1">
+                  <label
+                    className="block text-[11px] font-medium mb-1"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     Nombre de empresa
                   </label>
                   <input
@@ -185,12 +235,20 @@ export default function LoginPage() {
                     value={empresa}
                     onChange={(e) => setEmpresa(e.target.value)}
                     placeholder="Ej. Transportes Recinos S.A."
-                    className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                    className={inputCls}
+                    style={{
+                      background: "var(--surface-sunk)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-strong)",
+                    }}
                   />
                 </div>
 
                 <div className="mb-3">
-                  <label className="block text-xs text-gray-400 mb-1">
+                  <label
+                    className="block text-[11px] font-medium mb-1"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     RTU (opcional)
                   </label>
                   <input
@@ -198,14 +256,22 @@ export default function LoginPage() {
                     value={rtu}
                     onChange={(e) => setRtu(e.target.value)}
                     placeholder="NIT de la empresa"
-                    className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                    className={inputCls}
+                    style={{
+                      background: "var(--surface-sunk)",
+                      borderColor: "var(--border-default)",
+                      color: "var(--text-strong)",
+                    }}
                   />
                 </div>
               </>
             )}
 
             <div className="mb-3">
-              <label className="block text-xs text-gray-400 mb-1">
+              <label
+                className="block text-[11px] font-medium mb-1"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Correo electrónico
               </label>
               <input
@@ -214,12 +280,20 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="correo@empresa.com"
-                className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                className={inputCls}
+                style={{
+                  background: "var(--surface-sunk)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-strong)",
+                }}
               />
             </div>
 
             <div className={mode === "register" ? "mb-3" : "mb-5"}>
-              <label className="block text-xs text-gray-400 mb-1">
+              <label
+                className="block text-[11px] font-medium mb-1"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Contraseña
               </label>
               <input
@@ -229,13 +303,21 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                className={inputCls}
+                style={{
+                  background: "var(--surface-sunk)",
+                  borderColor: "var(--border-default)",
+                  color: "var(--text-strong)",
+                }}
               />
             </div>
 
             {mode === "register" && (
               <div className="mb-5">
-                <label className="block text-xs text-gray-400 mb-1">
+                <label
+                  className="block text-[11px] font-medium mb-1"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   Confirmar contraseña
                 </label>
                 <input
@@ -245,7 +327,12 @@ export default function LoginPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repite tu contraseña"
-                  className="w-full px-3 py-2.5 rounded-md border border-[rgba(68,68,65,0.12)] bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-teal-100"
+                  className={inputCls}
+                  style={{
+                    background: "var(--surface-sunk)",
+                    borderColor: "var(--border-default)",
+                    color: "var(--text-strong)",
+                  }}
                 />
               </div>
             )}
@@ -253,18 +340,26 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-teal-400 text-white rounded-md text-sm font-semibold hover:bg-teal-600 transition-colors disabled:opacity-60"
+              className="w-full py-2.5 rounded-[var(--radius-md)] text-[13px] font-semibold text-white transition-colors disabled:opacity-60"
+              style={{
+                background: "var(--color-primary)",
+              }}
+              onMouseEnter={(e) =>
+                !loading && ((e.currentTarget.style.background = "var(--color-primary-hover)"))
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget.style.background = "var(--color-primary)"))
+              }
             >
-              {loading
-                ? "..."
-                : mode === "login"
-                ? "Entrar"
-                : "Crear cuenta →"}
+              {loading ? "..." : mode === "login" ? "Entrar" : "Crear cuenta →"}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-200 mt-5">
+        <p
+          className="text-center text-[11px] mt-5"
+          style={{ color: "var(--text-faint)" }}
+        >
           ContainerGT © {new Date().getFullYear()} · Guatemala
         </p>
       </div>

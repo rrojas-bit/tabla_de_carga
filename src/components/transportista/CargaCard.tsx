@@ -43,24 +43,27 @@ export default function CargaCard({ carga, onBid, disabled = false }: Props) {
 
   return (
     <div
-      className={`bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-[17px] mb-2.5 transition-colors ${
-        vencida ? "opacity-60" : "hover:border-gray-100"
+      className={`bg-white rounded-[var(--radius-lg)] border border-[rgba(68,68,65,0.12)] p-[17px] mb-2.5 ${
+        vencida ? "opacity-60" : "cgt-card-interactive"
       }`}
     >
       {/* Top row */}
       <div className="flex justify-between items-start gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span
-            className={`text-[11px] px-2.5 py-[3px] rounded font-semibold ${
-              isImport
-                ? "bg-blue-50 text-blue-600"
-                : "bg-amber-50 text-amber-600"
-            }`}
+            className="text-[11px] px-2.5 py-[3px] rounded-[var(--radius-sm)] font-semibold"
+            style={isImport
+              ? { background: "var(--status-import-bg)", color: "var(--status-import-fg)" }
+              : { background: "var(--status-export-bg)", color: "var(--status-export-fg)" }
+            }
           >
             {isImport ? "Importación" : "Exportación"}
           </span>
           {vencida && (
-            <span className="text-[11px] px-2.5 py-[3px] rounded font-semibold bg-coral-50 text-coral-600">
+            <span
+              className="text-[11px] px-2.5 py-[3px] rounded-[var(--radius-sm)] font-semibold"
+              style={{ background: "var(--status-danger-bg)", color: "var(--status-danger-fg)" }}
+            >
               Vencida
             </span>
           )}
@@ -184,7 +187,10 @@ export default function CargaCard({ carga, onBid, disabled = false }: Props) {
                 ? "Esta carga ya venció"
                 : undefined
           }
-          className="px-4 py-2 bg-teal-400 text-white rounded-md text-[13px] font-semibold hover:bg-teal-600 transition-colors disabled:bg-gray-200 disabled:cursor-not-allowed flex-shrink-0"
+          className="px-4 py-2 text-white rounded-[var(--radius-md)] text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+        style={{ background: "var(--color-primary)" }}
+        onMouseEnter={(e) => { if (!bidDisabled) e.currentTarget.style.background = "var(--color-primary-hover)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--color-primary)"; }}
         >
           {disabled ? "Cuenta en revisión" : vencida ? "Vencida" : "Hacer oferta"}
         </button>
