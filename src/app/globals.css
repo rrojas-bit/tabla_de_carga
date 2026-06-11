@@ -2,38 +2,238 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ================================================================
+   ContainerGT Design System — CSS Custom Properties
+   All visual foundations: color, elevation, glass, type, spacing.
+   ================================================================ */
+
 :root {
-  --teal-50: #e1f5ee;
-  --teal-100: #9fe1cb;
-  --teal-400: #1d9e75;
-  --teal-600: #0f6e56;
-  --teal-800: #085041;
-  --amber-50: #faeeda;
+  /* ---- Primitive: Brand blue (Tailwind alias: "teal") ---- */
+  --blue-50:  #eef3fc;
+  --blue-100: #c2d4f0;
+  --blue-400: #1b4fbf;
+  --blue-600: #153a91;
+  --blue-800: #0f2766;
+
+  /* ---- Primitive: Sky (informational/in-transit; Tailwind "blue") ---- */
+  --sky-50:  #e6f1fb;
+  --sky-100: #b5d4f4;
+  --sky-400: #378add;
+  --sky-600: #185fa5;
+  --sky-800: #0c447c;
+
+  /* ---- Primitive: Amber (export, caution, pending) ---- */
+  --amber-50:  #faeeda;
   --amber-100: #fac775;
   --amber-400: #ba7517;
   --amber-600: #854f0b;
   --amber-800: #633806;
-  --blue-50: #e6f1fb;
-  --blue-100: #b5d4f4;
-  --blue-400: #378add;
-  --blue-600: #185fa5;
-  --blue-800: #0c447c;
-  --coral-50: #faece7;
+
+  /* ---- Primitive: Coral (destructive, alerts, overweight) ---- */
+  --coral-50:  #faece7;
   --coral-100: #f5c4b3;
   --coral-400: #d85a30;
   --coral-600: #993c1d;
-  --gray-50: #f1efe8;
-  --gray-100: #d3d1c7;
-  --gray-200: #b4b2a9;
-  --gray-400: #888780;
-  --gray-600: #5f5e5a;
-  --gray-800: #444441;
-  --white: #ffffff;
-  --bg: #f7f6f3;
-  --border: rgba(68, 68, 65, 0.12);
-  --radius: 10px;
-  --radius-lg: 14px;
+
+  /* ---- Primitive: Green (success, confirmed, delivered) ---- */
+  --green-50:  #e6f4ec;
+  --green-100: #b5dcc4;
+  --green-400: #1d9e75;
+  --green-600: #0f6e56;
+  --green-800: #085041;
+
+  /* ---- Primitive: Warm neutral ink (taupe-grey, never pure grey) ---- */
+  --ink-0:   #ffffff;
+  --ink-50:  #f1efe8;
+  --ink-100: #d3d1c7;
+  --ink-200: #b4b2a9;
+  --ink-400: #888780;
+  --ink-600: #5f5e5a;
+  --ink-800: #444441;
+  --ink-900: #2c2c2a;
+
+  /* Legacy aliases — kept for Tailwind class references */
+  --gray-50:  var(--ink-50);
+  --gray-100: var(--ink-100);
+  --gray-200: var(--ink-200);
+  --gray-400: var(--ink-400);
+  --gray-600: var(--ink-600);
+  --gray-800: var(--ink-800);
+
+  /* Legacy teal aliases (now correctly pointing to brand blue) */
+  --teal-50:  var(--blue-50);
+  --teal-100: var(--blue-100);
+  --teal-400: var(--blue-400);
+  --teal-600: var(--blue-600);
+  --teal-800: var(--blue-800);
+
+  /* Paper surfaces */
+  --paper:      #f7f6f3;
+  --paper-sunk: #f1efe8;
+  --bg:         #f7f6f3;
+  --white:      #ffffff;
+  --border:     rgba(68, 68, 65, 0.12);
+  --radius:     10px;
+  --radius-lg:  14px;
+
+  /* ================================================================
+     Semantic aliases — use these in product code
+     ================================================================ */
+
+  /* Brand */
+  --color-primary:        var(--blue-400);
+  --color-primary-hover:  var(--blue-600);
+  --color-primary-press:  var(--blue-800);
+  --color-primary-weak:   var(--blue-50);
+  --color-primary-border: var(--blue-100);
+  --color-on-primary:     #ffffff;
+
+  /* Surfaces */
+  --surface-page:  var(--paper);
+  --surface-card:  #ffffff;
+  --surface-sunk:  var(--ink-50);
+  --surface-inset: var(--ink-50);
+  --surface-hover: var(--ink-50);
+
+  /* Text */
+  --text-strong:  var(--ink-800);
+  --text-body:    var(--ink-600);
+  --text-muted:   var(--ink-400);
+  --text-faint:   var(--ink-200);
+  --text-on-dark: #ffffff;
+  --text-link:    var(--blue-600);
+
+  /* Borders */
+  --border-default: rgba(68, 68, 65, 0.12);
+  --border-strong:  rgba(68, 68, 65, 0.20);
+  --border-faint:   rgba(68, 68, 65, 0.06);
+  --ring-focus:     var(--blue-400);
+  --ring-focus-weak: var(--blue-50);
+
+  /* Status */
+  --status-import-bg:   var(--sky-50);
+  --status-import-fg:   var(--sky-600);
+  --status-export-bg:   var(--amber-50);
+  --status-export-fg:   var(--amber-600);
+  --status-success-bg:  var(--green-50);
+  --status-success-fg:  var(--green-600);
+  --status-transit-bg:  var(--sky-50);
+  --status-transit-fg:  var(--sky-600);
+  --status-pending-bg:  var(--amber-50);
+  --status-pending-fg:  var(--amber-600);
+  --status-danger-bg:   var(--coral-50);
+  --status-danger-fg:   var(--coral-600);
+  --status-neutral-bg:  var(--ink-50);
+  --status-neutral-fg:  var(--ink-400);
+
+  /* ================================================================
+     Elevation — material warm-tinted shadow ramp
+     ================================================================ */
+  --elevation-0: none;
+  --elevation-1:
+    0 1px 2px rgba(68, 68, 65, 0.06),
+    0 1px 1px rgba(68, 68, 65, 0.04);
+  --elevation-2:
+    0 2px 4px rgba(68, 68, 65, 0.05),
+    0 4px 12px rgba(68, 68, 65, 0.07);
+  --elevation-3:
+    0 4px 8px rgba(68, 68, 65, 0.06),
+    0 12px 28px rgba(68, 68, 65, 0.10);
+  --elevation-4:
+    0 8px 16px rgba(68, 68, 65, 0.08),
+    0 24px 56px rgba(68, 68, 65, 0.14);
+
+  --shadow-focus: 0 0 0 3px var(--ring-focus-weak);
+  --shadow-inset: inset 0 1px 2px rgba(68, 68, 65, 0.05);
+  --scrim:        rgba(44, 44, 42, 0.34);
+
+  /* ================================================================
+     Glass — backdrop-blur surfaces for floating chrome
+     ================================================================ */
+  --glass-blur:         16px;
+  --glass-blur-strong:  24px;
+  --glass-light-bg:     rgba(255, 255, 255, 0.72);
+  --glass-light-border: rgba(255, 255, 255, 0.55);
+  --glass-paper-bg:     rgba(247, 246, 243, 0.78);
+  --glass-dark-bg:      rgba(21, 58, 145, 0.55);
+  --glass-dark-border:  rgba(255, 255, 255, 0.16);
+
+  /* ================================================================
+     Typography
+     ================================================================ */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --text-display: 34px;
+  --text-h1:      26px;
+  --text-h2:      20px;
+  --text-h3:      16px;
+  --text-title:   15px;
+  --text-body-sz: 14px;
+  --text-sm:      13px;
+  --text-xs:      12px;
+  --text-2xs:     11px;
+  --text-micro:   10px;
+
+  --leading-tight:   1.15;
+  --leading-snug:    1.3;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight:   -0.02em;
+  --tracking-snug:    -0.01em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.04em;
+  --tracking-eyebrow: 0.07em;
+
+  /* ================================================================
+     Spacing & layout
+     ================================================================ */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+
+  --radius-sm:   7px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-2xl:  24px;
+  --radius-pill: 9999px;
+
+  --control-h-sm: 32px;
+  --control-h-md: 40px;
+  --control-h-lg: 48px;
+
+  --nav-height:    56px;
+  --sidebar-width: 260px;
+  --panel-width:   330px;
+
+  /* ================================================================
+     Motion
+     ================================================================ */
+  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --duration-fast:   120ms;
+  --duration-base:   180ms;
+  --duration-slow:   260ms;
 }
+
+/* ================================================================
+   Base layer
+   ================================================================ */
 
 * {
   box-sizing: border-box;
@@ -41,32 +241,94 @@
 
 body {
   font-family: "DM Sans", var(--font-dm-sans), sans-serif;
-  background: var(--bg);
-  color: var(--gray-800);
+  background: var(--surface-page);
+  color: var(--text-strong);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-strong);
+  line-height: var(--leading-tight);
+}
+
+/* ================================================================
+   Utility classes from design system
+   ================================================================ */
+
+/* Glass top nav / floating toolbars */
+.cgt-glass-light {
+  background: var(--glass-light-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+/* Eyebrow / overline labels */
+.cgt-eyebrow {
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Tabular numerals for financials */
+.cgt-tnum {
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Interactive card — elevation-1 base, lifts to elevation-2 on hover */
+.cgt-card-interactive {
+  box-shadow: var(--elevation-1);
+  transition:
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
+}
+.cgt-card-interactive:hover {
+  border-color: var(--border-strong) !important;
+  box-shadow: var(--elevation-2) !important;
+}
+
+/* Static card — just the base shadow */
+.cgt-card-base {
+  box-shadow: var(--elevation-1);
+}
+
+/* ================================================================
+   Pulse animations
+   ================================================================ */
+
+/* Live GPS / active stage dot — brand blue pulse */
+@keyframes cgt-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(27, 79, 191, 0.35); }
+  50%       { box-shadow: 0 0 0 5px rgba(27, 79, 191, 0); }
+}
+.cgt-pulse-dot {
+  animation: cgt-pulse-dot 1.6s var(--ease-standard) infinite;
+}
+
+/* Legacy class name — same animation, kept for existing references */
 @keyframes pulse-dot {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgba(29, 158, 117, 0);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(27, 79, 191, 0.35); }
+  50%       { box-shadow: 0 0 0 5px rgba(27, 79, 191, 0); }
 }
-
 .animate-pulse-dot {
-  animation: pulse-dot 1.5s infinite;
+  animation: pulse-dot 1.6s var(--ease-standard) infinite;
 }
 
-::-webkit-scrollbar {
-  width: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ================================================================
+   Scrollbars — slim, paper-toned
+   ================================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--gray-100);
-  border-radius: 10px;
+  background: var(--ink-100);
+  border-radius: var(--radius-pill);
 }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-200); }

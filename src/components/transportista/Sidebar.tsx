@@ -37,10 +37,10 @@ type Props = {
   onClose?: () => void;
 };
 
-const ESTADO_BADGE: Record<string, string> = {
-  libre: "bg-teal-50 text-teal-600",
-  en_ruta: "bg-amber-50 text-amber-600",
-  mantenimiento: "bg-coral-50 text-coral-600",
+const ESTADO_BADGE: Record<string, { bg: string; fg: string }> = {
+  libre:         { bg: "var(--status-success-bg)", fg: "var(--status-success-fg)" },
+  en_ruta:       { bg: "var(--status-pending-bg)", fg: "var(--status-pending-fg)" },
+  mantenimiento: { bg: "var(--status-danger-bg)",  fg: "var(--status-danger-fg)" },
 };
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -87,20 +87,22 @@ export default function Sidebar({
       {/* Auto-asignación toggle */}
       <div className="mb-5">
         <div
-          className={`flex items-center justify-between px-3 py-2.5 rounded-md border mb-1.5 ${
-            autoOn
-              ? "bg-teal-50 border-teal-100"
-              : "bg-gray-50 border-[rgba(68,68,65,0.12)]"
-          }`}
+          className="flex items-center justify-between px-3 py-2.5 rounded-[var(--radius-md)] border mb-1.5"
+          style={{
+            background: autoOn ? "var(--color-primary-weak)" : "var(--surface-sunk)",
+            borderColor: autoOn ? "var(--color-primary-border)" : "var(--border-default)",
+          }}
         >
           <div>
             <p
-              className={`text-[13px] font-semibold ${autoOn ? "text-teal-600" : "text-gray-600"}`}
+              className="text-[13px] font-semibold"
+              style={{ color: autoOn ? "var(--color-primary)" : "var(--text-body)" }}
             >
               Auto-asignación
             </p>
             <p
-              className={`text-[11px] mt-0.5 ${autoOn ? "text-teal-400" : "text-gray-400"}`}
+              className="text-[11px] mt-0.5"
+              style={{ color: autoOn ? "var(--blue-400)" : "var(--text-muted)" }}
             >
               {autoOn ? "Recibe cargas automático" : "Asignación manual"}
             </p>
@@ -111,9 +113,8 @@ export default function Sidebar({
             role="switch"
             aria-checked={autoOn}
             aria-label="Auto-asignación de cargas"
-            className={`w-9 h-[21px] rounded-full relative transition-colors flex-shrink-0 ${
-              autoOn ? "bg-teal-400" : "bg-gray-200"
-            }`}
+            className="w-9 h-[21px] rounded-full relative transition-colors flex-shrink-0"
+            style={{ background: autoOn ? "var(--color-primary)" : "var(--ink-100)" }}
           >
             <span
               className={`absolute top-[2px] w-[17px] h-[17px] bg-white rounded-full shadow-sm transition-all ${
@@ -312,9 +313,11 @@ function FlotaCard({ item }: { item: FlotaItem }) {
           disabled={busy}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className={`text-[11px] px-2 py-0.5 rounded font-medium cursor-pointer ${
-            ESTADO_BADGE[item.estado] ?? "bg-gray-100 text-gray-400"
-          }`}
+          className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)] font-medium cursor-pointer"
+          style={{
+            background: ESTADO_BADGE[item.estado]?.bg ?? "var(--ink-50)",
+            color: ESTADO_BADGE[item.estado]?.fg ?? "var(--text-muted)",
+          }}
           title="Cambiar estado"
         >
           {ESTADO_LABEL[item.estado] ?? item.estado}

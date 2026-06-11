@@ -191,7 +191,16 @@ export default function TransportistaView({
     <button
       onClick={loadMore}
       disabled={loadingMore}
-      className="w-full py-3 mt-2 bg-white border border-[rgba(68,68,65,0.12)] rounded-lg text-[13px] text-gray-400 hover:text-teal-600 hover:border-teal-100 transition-colors disabled:opacity-60"
+      className="w-full py-3 mt-2 bg-white rounded-[var(--radius-md)] text-[13px] transition-colors disabled:opacity-60"
+      style={{ border: "1px solid var(--border-default)", color: "var(--text-muted)" }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = "var(--color-primary)";
+        e.currentTarget.style.borderColor = "var(--color-primary-border)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = "var(--text-muted)";
+        e.currentTarget.style.borderColor = "var(--border-default)";
+      }}
     >
       {loadingMore ? "Cargando…" : "Cargar más cargas"}
     </button>
@@ -220,25 +229,45 @@ export default function TransportistaView({
 
         {/* Pending approval banner */}
         {isPendiente && (
-          <div className="mb-5 p-4 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
+          <div
+            className="mb-5 p-4 rounded-[var(--radius-lg)] flex items-start gap-3"
+            style={{
+              background: "var(--status-pending-bg)",
+              border: "1px solid var(--amber-100)",
+            }}
+          >
             <i
-              className="ti ti-clock-hour-4 text-amber-400 text-xl flex-shrink-0 mt-0.5"
+              className="ti ti-clock-hour-4 text-xl flex-shrink-0 mt-0.5"
+              style={{ color: "var(--amber-400)" }}
               aria-hidden="true"
             />
             <div>
-              <p className="text-[13px] font-semibold text-amber-600">
+              <p
+                className="text-[13px] font-semibold"
+                style={{ color: "var(--status-pending-fg)" }}
+              >
                 Cuenta en revisión
               </p>
-              <p className="text-[12px] text-amber-600 mt-0.5 leading-5">
+              <p
+                className="text-[12px] mt-0.5 leading-5"
+                style={{ color: "var(--amber-600)" }}
+              >
                 Tu empresa está siendo evaluada por el equipo de ContainerGT. Una vez aprobada, podrás hacer ofertas en cargas. Mientras tanto, puedes ver las publicaciones disponibles.
               </p>
             </div>
           </div>
         )}
 
-        {/* New cargas Realtime alert — persists until dismissed */}
+        {/* New cargas realtime alert */}
         {newCargasCount > 0 && (
-          <div className="mb-4 p-3 bg-teal-50 border border-teal-100 rounded-md flex items-center gap-2 text-[13px] text-teal-600 font-medium">
+          <div
+            className="mb-4 p-3 rounded-[var(--radius-md)] flex items-center gap-2 text-[13px] font-medium"
+            style={{
+              background: "var(--color-primary-weak)",
+              border: "1px solid var(--color-primary-border)",
+              color: "var(--color-primary)",
+            }}
+          >
             <i className="ti ti-bell-ringing" aria-hidden="true" />
             <span className="flex-1">
               {newCargasCount === 1
@@ -247,7 +276,8 @@ export default function TransportistaView({
             </span>
             <button
               onClick={() => setNewCargasCount(0)}
-              className="text-teal-600 hover:text-teal-800 p-0.5"
+              className="p-0.5 transition-opacity hover:opacity-70"
+              style={{ color: "var(--color-primary)" }}
               aria-label="Descartar aviso"
             >
               <i className="ti ti-x text-[14px]" aria-hidden="true" />
@@ -294,44 +324,73 @@ export default function TransportistaView({
 
         {/* Section header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-          <div className="flex gap-1">
+          {/* Segmented tabs */}
+          <div
+            className="flex gap-0.5 rounded-[10px] p-[3px] self-start"
+            style={{
+              background: "var(--surface-sunk)",
+              border: "1px solid var(--border-default)",
+            }}
+          >
             <button
               onClick={() => setTab("disponibles")}
-              className={`px-3 py-1.5 rounded-md text-[14px] font-semibold transition-colors ${
-                tab === "disponibles"
-                  ? "text-gray-800"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
+              className="px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-all"
+              style={tab === "disponibles"
+                ? {
+                    background: "var(--surface-card)",
+                    color: "var(--text-strong)",
+                    boxShadow: "var(--elevation-1)",
+                    border: "1px solid var(--border-default)",
+                  }
+                : { color: "var(--text-muted)" }
+              }
             >
               Cargas disponibles
             </button>
             <button
               onClick={() => setTab("ofertas")}
-              className={`px-3 py-1.5 rounded-md text-[14px] font-semibold transition-colors ${
-                tab === "ofertas"
-                  ? "text-gray-800"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-all"
+              style={tab === "ofertas"
+                ? {
+                    background: "var(--surface-card)",
+                    color: "var(--text-strong)",
+                    boxShadow: "var(--elevation-1)",
+                    border: "1px solid var(--border-default)",
+                  }
+                : { color: "var(--text-muted)" }
+              }
             >
               Mis ofertas
               {ofertasPendientes > 0 && (
-                <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-semibold">
+                <span
+                  className="text-[11px] px-1.5 py-0.5 rounded-full font-semibold"
+                  style={{ background: "var(--status-pending-bg)", color: "var(--status-pending-fg)" }}
+                >
                   {ofertasPendientes}
                 </span>
               )}
             </button>
           </div>
+
           {tab === "disponibles" && (
             <div className="flex gap-1.5 overflow-x-auto pb-1 -mb-1">
               {FILTERS.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-3 py-1 rounded-full text-[12px] border transition-all whitespace-nowrap flex-shrink-0 ${
-                    filter === f.value
-                      ? "bg-teal-50 border-teal-100 text-teal-600"
-                      : "bg-white border-[rgba(68,68,65,0.12)] text-gray-400 hover:text-gray-600"
-                  }`}
+                  className="px-3 py-1 rounded-full text-[12px] border transition-all whitespace-nowrap flex-shrink-0 font-medium"
+                  style={filter === f.value
+                    ? {
+                        background: "var(--color-primary-weak)",
+                        borderColor: "var(--color-primary-border)",
+                        color: "var(--color-primary)",
+                      }
+                    : {
+                        background: "var(--surface-card)",
+                        borderColor: "var(--border-default)",
+                        color: "var(--text-muted)",
+                      }
+                  }
                 >
                   {f.label}
                 </button>
@@ -387,15 +446,19 @@ function StatCard({
   subTone?: "positive" | "negative";
 }) {
   return (
-    <div className="bg-white rounded-md border border-[rgba(68,68,65,0.12)] px-4 py-3.5">
-      <p className="text-[11px] text-gray-400 mb-1">{label}</p>
-      <p className="text-[22px] font-semibold text-gray-800 leading-tight">
+    <div
+      className="cgt-card-base bg-white rounded-[var(--radius-lg)] border border-[rgba(68,68,65,0.12)] px-4 py-3.5"
+    >
+      <p className="text-[11px] mb-1" style={{ color: "var(--text-muted)" }}>{label}</p>
+      <p
+        className="text-[22px] font-semibold leading-tight cgt-tnum"
+        style={{ color: "var(--text-strong)", letterSpacing: "var(--tracking-tight)" }}
+      >
         {value}
       </p>
       <p
-        className={`text-[11px] mt-0.5 ${
-          subTone === "negative" ? "text-coral-600" : "text-teal-400"
-        }`}
+        className="text-[11px] mt-0.5"
+        style={{ color: subTone === "negative" ? "var(--coral-600)" : "var(--green-600)" }}
       >
         {sub}
       </p>

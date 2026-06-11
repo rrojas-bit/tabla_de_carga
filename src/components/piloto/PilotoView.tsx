@@ -113,12 +113,21 @@ export default function PilotoView({ movimiento, flags }: Props) {
             <div
               className="w-[288px] bg-white rounded-[26px] border-2 border-gray-100 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.09)] mx-auto"
             >
-              <div className="bg-teal-600 px-4 py-4">
-                <p className="text-white/60 text-[11px] mb-1">ContainerGT Piloto</p>
-                <p className="text-white text-[15px] font-semibold">Sin asignación activa</p>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-100" />
-                  <p className="text-white/70 text-[11px]">Esperando carga</p>
+              <div
+                className="px-4 py-4 relative"
+                style={{ background: "linear-gradient(150deg, var(--blue-600), var(--blue-800))" }}
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "radial-gradient(300px 120px at 80% -20%, rgba(255,255,255,0.15), transparent 70%)" }}
+                />
+                <div className="relative">
+                  <p className="text-white/60 text-[11px] mb-1">ContainerGT Piloto</p>
+                  <p className="text-white text-[15px] font-semibold">Sin asignación activa</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-100 opacity-60" />
+                    <p className="text-white/70 text-[11px]">Esperando carga</p>
+                  </div>
                 </div>
               </div>
               <div className="p-4 text-center py-10">
@@ -135,8 +144,11 @@ export default function PilotoView({ movimiento, flags }: Props) {
 
       {/* Right: Pilot info panel */}
       <aside className="w-[320px] min-w-[320px] border-l border-[rgba(68,68,65,0.12)] bg-white overflow-y-auto h-[calc(100vh-56px)] sticky top-[56px] p-[18px]">
-        <p className="text-[14px] font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <i className="ti ti-id-badge text-teal-400" />
+        <p
+          className="text-[14px] font-semibold mb-4 flex items-center gap-2"
+          style={{ color: "var(--text-strong)" }}
+        >
+          <i className="ti ti-id-badge" style={{ color: "var(--color-primary)" }} />
           Perfil del piloto
         </p>
 
@@ -265,22 +277,30 @@ function PhoneMockup({
 }: PhoneProps) {
   return (
     <div className="w-[288px] bg-white rounded-[26px] border-2 border-gray-100 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.09)]">
-      {/* Header */}
-      <div className="bg-teal-600 px-4 py-4">
-        <p className="text-white/60 text-[11px] mb-1">ContainerGT Piloto</p>
-        <p className="text-white text-[15px] font-semibold">
-          {piloto?.nombre_completo ?? "Piloto"}
-          {cabezal ? ` — ${cabezal.placa}` : ""}
-        </p>
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${
-              isCompleted ? "bg-teal-100" : "bg-teal-100 animate-pulse-dot"
-            }`}
-          />
-          <p className="text-white/70 text-[11px]">
-            {isCompleted ? "Viaje completado" : "GPS activo · En ruta"}
+      {/* Brand glass header */}
+      <div
+        className="px-4 py-4 relative"
+        style={{ background: "linear-gradient(150deg, var(--blue-600), var(--blue-800))" }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{ background: "radial-gradient(300px 120px at 80% -20%, rgba(255,255,255,0.15), transparent 70%)" }}
+        />
+        <div className="relative">
+          <p className="text-[11px] mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>ContainerGT Piloto</p>
+          <p className="text-white text-[15px] font-semibold">
+            {piloto?.nombre_completo ?? "Piloto"}
+            {cabezal ? ` — ${cabezal.placa}` : ""}
           </p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <div
+              className={`w-1.5 h-1.5 rounded-full ${isCompleted ? "" : "animate-pulse-dot"}`}
+              style={{ background: isCompleted ? "rgba(255,255,255,0.4)" : "#fff" }}
+            />
+            <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+              {isCompleted ? "Viaje completado" : "GPS activo · En ruta"}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -315,12 +335,16 @@ function PhoneMockup({
                   {/* Dot */}
                   <div
                     className={`w-[17px] h-[17px] rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isDone
-                        ? "bg-teal-400"
-                        : isActive
-                          ? "bg-teal-400 border-[2.5px] border-teal-100 animate-pulse-dot"
-                          : "bg-gray-50 border border-gray-100"
+                      isActive ? "animate-pulse-dot" : ""
                     }`}
+                    style={{
+                      background: isDone || isActive ? "var(--color-primary)" : "var(--surface-sunk)",
+                      border: isActive
+                        ? "2.5px solid var(--blue-100)"
+                        : isDone
+                        ? "none"
+                        : "1px solid var(--ink-100)",
+                    }}
                   >
                     {isDone && (
                       <i className="ti ti-check text-white text-[10px]" />
@@ -329,21 +353,18 @@ function PhoneMockup({
                   {/* Connector */}
                   {idx < etapas.length - 1 && (
                     <div
-                      className={`w-px h-5 my-0.5 ${
-                        isDone ? "bg-teal-400" : "bg-gray-100"
-                      }`}
+                      className="w-px h-5 my-0.5"
+                      style={{ background: isDone ? "var(--color-primary)" : "var(--ink-100)" }}
                     />
                   )}
                 </div>
                 <div className="flex-1 pt-[1px] pb-2">
                   <p
-                    className={`text-[12px] font-medium leading-tight ${
-                      isDone
-                        ? "text-teal-600"
-                        : isActive
-                          ? "text-gray-800"
-                          : "text-gray-200 font-normal"
-                    }`}
+                    className="text-[12px] leading-tight"
+                    style={{
+                      fontWeight: isDone || isActive ? "var(--weight-medium)" : "var(--weight-regular)",
+                      color: isDone ? "var(--blue-600)" : isActive ? "var(--text-strong)" : "var(--text-faint)",
+                    }}
                   >
                     {nombre}
                   </p>
@@ -360,11 +381,18 @@ function PhoneMockup({
         <button
           onClick={onNext}
           disabled={isPending || isCompleted}
-          className={`w-full py-3 rounded-md text-[14px] font-semibold flex items-center justify-center gap-2 mb-2 transition-colors ${
+          className="w-full py-3 rounded-[var(--radius-md)] text-[14px] font-semibold flex items-center justify-center gap-2 mb-2 transition-colors disabled:opacity-60"
+          style={
             isCompleted
-              ? "bg-teal-50 text-teal-600 cursor-default"
-              : "bg-teal-400 text-white hover:bg-teal-600 disabled:opacity-60"
-          }`}
+              ? { background: "var(--color-primary-weak)", color: "var(--color-primary)", cursor: "default" }
+              : { background: "var(--color-primary)", color: "#fff" }
+          }
+          onMouseEnter={(e) => {
+            if (!isCompleted && !isPending) e.currentTarget.style.background = "var(--color-primary-hover)";
+          }}
+          onMouseLeave={(e) => {
+            if (!isCompleted) e.currentTarget.style.background = "var(--color-primary)";
+          }}
         >
           {!isCompleted && (
             <i className="ti ti-circle-arrow-right" />
@@ -423,14 +451,12 @@ function NotifTimeline({
           className="flex gap-2.5 py-2.5 border-b border-[rgba(68,68,65,0.08)] last:border-0 items-start"
         >
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-              n.icon === "ni-teal" ? "bg-teal-50" : "bg-amber-50"
-            }`}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: n.icon === "ni-teal" ? "var(--status-success-bg)" : "var(--status-pending-bg)" }}
           >
             <i
-              className={`${n.tabler} text-[17px] ${
-                n.icon === "ni-teal" ? "text-teal-400" : "text-amber-400"
-              }`}
+              className={`${n.tabler} text-[17px]`}
+              style={{ color: n.icon === "ni-teal" ? "var(--green-400)" : "var(--amber-400)" }}
             />
           </div>
           <div>

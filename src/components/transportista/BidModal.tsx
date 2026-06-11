@@ -74,14 +74,20 @@ export default function BidModal({ carga, flota, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/30 z-[999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+      style={{ background: "var(--scrim)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="bid-modal-title"
-        className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto"
+        className="bg-white p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto"
+        style={{
+          borderRadius: "var(--radius-lg)",
+          border: "1px solid var(--border-default)",
+          boxShadow: "var(--elevation-4)",
+        }}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
@@ -224,7 +230,10 @@ export default function BidModal({ carga, flota, onClose }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="flex-[2] py-2.5 bg-teal-400 text-white rounded-md text-[13px] font-semibold hover:bg-teal-600 transition-colors disabled:opacity-60"
+              className="flex-[2] py-2.5 text-white rounded-[var(--radius-md)] text-[13px] font-semibold transition-colors disabled:opacity-60"
+            style={{ background: "var(--color-primary)" }}
+            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "var(--color-primary-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--color-primary)"; }}
             >
               {loading ? "Enviando..." : "Enviar oferta →"}
             </button>

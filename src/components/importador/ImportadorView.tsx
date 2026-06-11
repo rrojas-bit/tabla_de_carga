@@ -15,12 +15,12 @@ type Props = {
   misCargas: CargaResumen[];
 };
 
-const ESTADO_BADGE: Record<string, string> = {
-  publicada: "bg-gray-50 text-gray-400",
-  en_subasta: "bg-amber-50 text-amber-600",
-  asignada: "bg-teal-50 text-teal-600",
-  en_transito: "bg-blue-50 text-blue-600",
-  entregada: "bg-teal-50 text-teal-600",
+const ESTADO_BADGE: Record<string, { bg: string; fg: string }> = {
+  publicada:   { bg: "var(--status-neutral-bg)",  fg: "var(--status-neutral-fg)" },
+  en_subasta:  { bg: "var(--status-pending-bg)",  fg: "var(--status-pending-fg)" },
+  asignada:    { bg: "var(--status-success-bg)",  fg: "var(--status-success-fg)" },
+  en_transito: { bg: "var(--status-transit-bg)",  fg: "var(--status-transit-fg)" },
+  entregada:   { bg: "var(--status-success-bg)",  fg: "var(--status-success-fg)" },
 };
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -84,20 +84,26 @@ export default function ImportadorView({ puertos, misCargas }: Props) {
                   <div
                     key={c.id}
                     onClick={() => setSelectedCargaId(c.id)}
-                    className={`w-full text-left bg-white rounded-md border px-4 py-3 transition-all cursor-pointer ${
-                      selectedCargaId === c.id
-                        ? "border-teal-100 ring-1 ring-teal-100"
-                        : "border-[rgba(68,68,65,0.12)] hover:border-gray-100"
-                    }`}
+                    className="w-full text-left bg-white rounded-[var(--radius-lg)] border px-4 py-3 cursor-pointer cgt-card-interactive"
+                    style={{
+                      borderColor: selectedCargaId === c.id
+                        ? "var(--color-primary-border)"
+                        : "var(--border-default)",
+                      boxShadow: selectedCargaId === c.id
+                        ? "0 0 0 2px var(--color-primary-weak), var(--elevation-1)"
+                        : "var(--elevation-1)",
+                    }}
                   >
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="text-[11px] text-gray-200">
                         {c.numero ? `#${c.numero}` : c.id.slice(0, 8)}
                       </span>
                       <span
-                        className={`text-[11px] px-2 py-0.5 rounded font-medium ${
-                          ESTADO_BADGE[c.estado] ?? "bg-gray-50 text-gray-400"
-                        }`}
+                        className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)] font-medium"
+                        style={{
+                          background: ESTADO_BADGE[c.estado]?.bg ?? "var(--surface-sunk)",
+                          color: ESTADO_BADGE[c.estado]?.fg ?? "var(--text-muted)",
+                        }}
                       >
                         {ESTADO_LABEL[c.estado] ?? c.estado}
                       </span>
