@@ -266,6 +266,144 @@ export async function cancelCarga(cargaId: string) {
   return { success: true };
 }
 
+export async function analizarOfertas(cargaId: string): Promise<{
+  result?: import("@/lib/ai/rankBids").RankingResult;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("empresa_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.empresa_id) return { error: "No se encontró empresa" };
+
+  // Solo el dueño de la carga puede analizar sus ofertas
+  const { data: carga } = await supabase
+    .from("cargas")
+    .select(
+      "id, tipo_contenedor, tarifa_referencia, destino_direccion, puerto:puertos(nombre)"
+    )
+    .eq("id", cargaId)
+    .eq("cliente_empresa_id", profile.empresa_id)
+    .single();
+
+  if (!carga) return { error: "Carga no encontrada o sin permiso" };
+
+  const { data: bids } = await supabase
+    .from("bids")
+    .select(
+      `id, monto, tiempo_respuesta, nota,
+       empresa:empresas(id, nombre, score_plataforma, total_evaluaciones)`
+    )
+    .eq("carga_id", cargaId)
+    .eq("estado", "pendiente");
+
+  if (!bids || bids.length === 0) {
+    return { error: "Sin ofertas pendientes para analizar" };
+  }
+
+  type EmpresaRef = {
+    id: string;
+    nombre: string;
+    score_plataforma: number | null;
+    total_evaluaciones: number | null;
+  };
+  const empresaIds = bids
+    .map((b) => (b.empresa as unknown as EmpresaRef | null)?.id)
+    .filter((id): id is string => Boolean(id));
+
+  // Datos de reputación por empresa: entregas, flags de pilotos, flota libre
+  const [entregadasRes, flotaRes, pilotosRes] = await Promise.all([
+    supabase
+      .from("cargas")
+      .select("transportista_asignado_id")
+      .in("transportista_asignado_id", empresaIds)
+      .eq("estado", "entregada"),
+    supabase
+      .from("flota")
+      .select("empresa_id")
+      .in("empresa_id", empresaIds)
+      .eq("estado", "libre")
+      .eq("tipo", "cabezal"),
+    supabase
+      .from("piloto_empresa")
+      .select("empresa_id, piloto_id")
+      .in("empresa_id", empresaIds)
+      .eq("activo", true),
+  ]);
+
+  const entregadasMap: Record<string, number> = {};
+  entregadasRes.data?.forEach((c) => {
+    if (c.transportista_asignado_id)
+      entregadasMap[c.transportista_asignado_id] =
+        (entregadasMap[c.transportista_asignado_id] ?? 0) + 1;
+  });
+
+  const flotaMap: Record<string, number> = {};
+  flotaRes.data?.forEach((f) => {
+    flotaMap[f.empresa_id] = (flotaMap[f.empresa_id] ?? 0) + 1;
+  });
+
+  // Flags sin verificar de los pilotos activos de cada empresa
+  const pilotoToEmpresa: Record<string, string> = {};
+  const pilotoIds: string[] = [];
+  pilotosRes.data?.forEach((pe) => {
+    pilotoToEmpresa[pe.piloto_id] = pe.empresa_id;
+    pilotoIds.push(pe.piloto_id);
+  });
+
+  const flagsMap: Record<string, number> = {};
+  if (pilotoIds.length > 0) {
+    const { data: flags } = await supabase
+      .from("flags_piloto")
+      .select("piloto_id")
+      .in("piloto_id", pilotoIds)
+      .eq("verificado", false)
+      .is("archivado_en", null);
+    flags?.forEach((f) => {
+      const empId = pilotoToEmpresa[f.piloto_id];
+      if (empId) flagsMap[empId] = (flagsMap[empId] ?? 0) + 1;
+    });
+  }
+
+  const bidsParaAnalisis = bids.map((b) => {
+    const emp = b.empresa as unknown as EmpresaRef | null;
+    return {
+      bid_id: b.id,
+      monto: b.monto,
+      tiempo_respuesta: b.tiempo_respuesta,
+      nota: b.nota,
+      empresa_nombre: emp?.nombre ?? "Transportista",
+      score_plataforma: emp?.score_plataforma ?? null,
+      total_evaluaciones: emp?.total_evaluaciones ?? null,
+      cargas_completadas: emp ? (entregadasMap[emp.id] ?? 0) : 0,
+      flags_pilotos: emp ? (flagsMap[emp.id] ?? 0) : 0,
+      flota_libre: emp ? (flotaMap[emp.id] ?? 0) : 0,
+    };
+  });
+
+  const ruta = `${(carga.puerto as { nombre?: string } | null)?.nombre ?? "Puerto"} → ${carga.destino_direccion}`;
+
+  try {
+    const { rankearOfertas } = await import("@/lib/ai/rankBids");
+    const result = await rankearOfertas(bidsParaAnalisis, {
+      ruta,
+      tipo_contenedor: carga.tipo_contenedor,
+      tarifa_referencia: carga.tarifa_referencia,
+    });
+    return { result };
+  } catch (err) {
+    return { error: String(err) };
+  }
+}
+
 export async function rejectBid(bidId: string) {
   const supabase = await createClient();
   const {
