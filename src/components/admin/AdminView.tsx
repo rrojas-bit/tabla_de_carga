@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { aprobarEmpresa, rechazarEmpresa, analizarConIA } from "@/app/(dashboard)/admin/actions";
+import {
+  aprobarEmpresa,
+  rechazarEmpresa,
+  analizarConIA,
+  detectarAnomalias,
+} from "@/app/(dashboard)/admin/actions";
 import type { EmpresaPendiente } from "@/app/(dashboard)/admin/page";
 import type { AnalisisResult } from "@/lib/ai/analyze";
+import type { DeteccionResult } from "@/lib/ai/fraude";
 
 type EmpresaActiva = {
   id: string;
@@ -20,7 +26,20 @@ type Props = {
   activas: EmpresaActiva[];
 };
 
-type Tab = "pendientes" | "activas";
+type Tab = "pendientes" | "activas" | "alertas";
+
+const SEVERIDAD_COLOR: Record<string, string> = {
+  alta: "bg-coral-50 text-coral-600 border-coral-100",
+  media: "bg-amber-50 text-amber-600 border-amber-100",
+  baja: "bg-gray-50 text-gray-400 border-[rgba(68,68,65,0.12)]",
+};
+
+const TIPO_ALERTA_ICON: Record<string, string> = {
+  etapas_rapidas: "ti-clock-bolt",
+  bid_anomalo: "ti-coin-off",
+  piloto_flags: "ti-user-exclamation",
+  otro: "ti-alert-triangle",
+};
 
 const RIESGO_COLOR: Record<string, string> = {
   bajo: "bg-teal-50 text-teal-600 border-teal-100",
@@ -50,7 +69,20 @@ export default function AdminView({ pendientes, activas }: Props) {
   const [acting, setActing] = useState<string | null>(null);
   const [rechazarId, setRechazarId] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [deteccion, setDeteccion] = useState<DeteccionResult | null>(null);
+  const [detectando, setDetectando] = useState(false);
   useTransition();
+
+  async function handleDetectar() {
+    setDetectando(true);
+    const { result, error } = await detectarAnomalias();
+    if (result) {
+      setDeteccion(result);
+    } else {
+      alert("Error en detección: " + error);
+    }
+    setDetectando(false);
+  }
 
   async function handleAnalizar(empresaId: string) {
     setAnalyzing(empresaId);
@@ -86,7 +118,7 @@ export default function AdminView({ pendientes, activas }: Props) {
       <aside className="w-[300px] min-w-[300px] bg-white border-r border-[rgba(68,68,65,0.12)] overflow-y-auto h-[calc(100vh-56px)] sticky top-[56px]">
         <div className="p-4 border-b border-[rgba(68,68,65,0.12)]">
           <div className="flex gap-1 bg-gray-50 rounded-lg p-1">
-            {(["pendientes", "activas"] as Tab[]).map((t) => (
+            {(["pendientes", "activas", "alertas"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -98,7 +130,9 @@ export default function AdminView({ pendientes, activas }: Props) {
               >
                 {t === "pendientes"
                   ? `Pendientes${pendientes.length > 0 ? ` (${pendientes.length})` : ""}`
-                  : `Activas (${activas.length})`}
+                  : t === "activas"
+                    ? `Activas (${activas.length})`
+                    : `Alertas${deteccion ? ` (${deteccion.alertas.length})` : ""}`}
               </button>
             ))}
           </div>
@@ -140,7 +174,7 @@ export default function AdminView({ pendientes, activas }: Props) {
                 </button>
               ))
             )
-          ) : (
+          ) : tab === "activas" ? (
             activas.map((e) => (
               <div
                 key={e.id}
@@ -159,6 +193,14 @@ export default function AdminView({ pendientes, activas }: Props) {
                 <p className="text-[11px] text-gray-400 mt-0.5">{e.tipo}</p>
               </div>
             ))
+          ) : (
+            <div className="px-4 py-4">
+              <p className="text-[12px] text-gray-400 leading-5">
+                El monitor de anomalías revisa los últimos 30 días: etapas
+                avanzadas demasiado rápido, ofertas muy por debajo del mercado
+                y pilotos con incidentes sin resolver en viajes activos.
+              </p>
+            </div>
           )}
         </div>
       </aside>
@@ -184,6 +226,12 @@ export default function AdminView({ pendientes, activas }: Props) {
               </p>
             </div>
           </div>
+        ) : tab === "alertas" ? (
+          <AlertasPanel
+            deteccion={deteccion}
+            detectando={detectando}
+            onDetectar={handleDetectar}
+          />
         ) : (
           <div className="flex items-center justify-center h-60">
             <p className="text-sm text-gray-400">Selecciona una empresa</p>
@@ -230,6 +278,125 @@ export default function AdminView({ pendientes, activas }: Props) {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Alertas panel — monitor de anomalías ----
+
+function AlertasPanel({
+  deteccion,
+  detectando,
+  onDetectar,
+}: {
+  deteccion: DeteccionResult | null;
+  detectando: boolean;
+  onDetectar: () => void;
+}) {
+  return (
+    <div className="max-w-2xl">
+      <div className="flex justify-between items-center mb-5">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-800">
+            Monitor de anomalías
+          </h1>
+          <p className="text-[13px] text-gray-400 mt-0.5">
+            Detección de fraude y operación irregular — últimos 30 días
+          </p>
+        </div>
+        <button
+          onClick={onDetectar}
+          disabled={detectando}
+          className="px-4 py-2.5 bg-teal-400 text-white rounded-md text-[13px] font-semibold hover:bg-teal-600 transition-colors disabled:opacity-60 flex items-center gap-2"
+        >
+          {detectando ? (
+            <>
+              <i className="ti ti-loader-2 animate-spin" />
+              Analizando…
+            </>
+          ) : (
+            <>
+              <i className="ti ti-radar-2" />
+              {deteccion ? "Volver a analizar" : "Ejecutar análisis"}
+            </>
+          )}
+        </button>
+      </div>
+
+      {!deteccion ? (
+        <div className="bg-white rounded-md border border-[rgba(68,68,65,0.12)] py-14 text-center">
+          <i className="ti ti-shield-search text-4xl text-gray-100 block mb-3" />
+          <p className="text-sm text-gray-400 font-medium">
+            Ejecuta el análisis para revisar la actividad reciente
+          </p>
+          <p className="text-xs text-gray-200 mt-1.5 max-w-sm mx-auto">
+            Se revisan tiempos entre etapas, ofertas fuera de mercado y pilotos
+            con incidentes pendientes en viajes activos.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Resumen ejecutivo */}
+          <div className="bg-white rounded-md border border-[rgba(68,68,65,0.12)] p-4 mb-4 flex gap-3 items-start">
+            <i className="ti ti-sparkles text-teal-400 text-lg flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-gray-600 leading-relaxed">
+              {deteccion.resumen}
+            </p>
+          </div>
+
+          {deteccion.alertas.length === 0 ? (
+            <div className="bg-white rounded-md border border-[rgba(68,68,65,0.12)] py-12 text-center">
+              <i className="ti ti-circle-check text-4xl text-teal-100 block mb-2" />
+              <p className="text-sm text-gray-400 font-medium">
+                Sin anomalías detectadas
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {deteccion.alertas.map((a, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-md border border-[rgba(68,68,65,0.12)] p-4"
+                >
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <i
+                      className={`ti ${TIPO_ALERTA_ICON[a.tipo] ?? "ti-alert-triangle"} text-lg ${
+                        a.severidad === "alta"
+                          ? "text-coral-400"
+                          : a.severidad === "media"
+                            ? "text-amber-400"
+                            : "text-gray-200"
+                      }`}
+                    />
+                    <p className="text-[14px] font-semibold text-gray-800 flex-1">
+                      {a.titulo}
+                    </p>
+                    <span
+                      className={`text-[11px] px-2 py-0.5 rounded border font-semibold capitalize ${
+                        SEVERIDAD_COLOR[a.severidad] ?? SEVERIDAD_COLOR.baja
+                      }`}
+                    >
+                      {a.severidad}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-gray-400 mb-1">
+                    {a.referencia}
+                  </p>
+                  <p className="text-[13px] text-gray-600 leading-5 mb-2.5">
+                    {a.detalle}
+                  </p>
+                  <div className="bg-gray-50 rounded-md px-3 py-2 flex gap-2 items-start">
+                    <i className="ti ti-arrow-right text-teal-400 text-[14px] flex-shrink-0 mt-0.5" />
+                    <p className="text-[12px] text-gray-600 leading-5">
+                      {a.recomendacion}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

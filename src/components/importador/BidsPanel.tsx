@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { acceptBid, rejectBid } from "@/app/(dashboard)/importador/actions";
+import {
+  acceptBid,
+  rejectBid,
+  analizarOfertas,
+} from "@/app/(dashboard)/importador/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { CargaResumen } from "@/app/(dashboard)/importador/page";
+import type { RankingResult, BidEvaluacion } from "@/lib/ai/rankBids";
 
 const CONTENEDOR_LABEL: Record<string, string> = {
   "20_dry": "20' Dry",
@@ -42,9 +47,12 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
   const [bids, setBids] = useState<BidRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
+  const [ranking, setRanking] = useState<RankingResult | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(false);
 
   useEffect(() => {
     if (!carga) return;
+    setRanking(null);
     fetchBids(carga.id);
 
     // Realtime: refresh when new bids arrive for this carga
@@ -148,6 +156,29 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
     setActing(null);
   }
 
+  async function handleRanking() {
+    if (!carga) return;
+    setRankingLoading(true);
+    const { result, error } = await analizarOfertas(carga.id);
+    if (result) {
+      setRanking(result);
+    } else if (error) {
+      toast.error(error);
+    }
+    setRankingLoading(false);
+  }
+
+  // Con ranking activo, ordena por score compuesto (precio + reputación);
+  // sin ranking, mantiene el orden por monto del fetch.
+  const evalMap = new Map<string, BidEvaluacion>(
+    ranking?.evaluaciones.map((e) => [e.bid_id, e]) ?? []
+  );
+  const sortedBids = ranking
+    ? [...bids].sort(
+        (a, b) => (evalMap.get(b.id)?.score ?? -1) - (evalMap.get(a.id)?.score ?? -1)
+      )
+    : bids;
+
   if (!carga) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 px-5 text-center">
@@ -227,11 +258,47 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
             </div>
           ) : (
             <div className="space-y-2">
-              {bids.map((bid, idx) => (
+              {/* Ranking IA — pondera precio Y reputación del transportista */}
+              {bids.length > 1 && !ranking && (
+                <button
+                  onClick={handleRanking}
+                  disabled={rankingLoading}
+                  className="w-full py-2.5 mb-1 bg-white border border-[rgba(68,68,65,0.12)] rounded-md text-[12px] font-medium text-gray-600 hover:border-teal-100 hover:text-teal-600 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {rankingLoading ? (
+                    <>
+                      <i className="ti ti-loader-2 animate-spin" />
+                      Analizando ofertas…
+                    </>
+                  ) : (
+                    <>
+                      <i className="ti ti-sparkles text-teal-400" />
+                      Ranking IA — precio + confiabilidad
+                    </>
+                  )}
+                </button>
+              )}
+
+              {ranking && (
+                <div className="bg-teal-50 border border-teal-100 rounded-md p-3 mb-1">
+                  <p className="text-[11px] font-semibold text-teal-600 mb-1 flex items-center gap-1.5">
+                    <i className="ti ti-sparkles" />
+                    Recomendación IA
+                  </p>
+                  <p className="text-[12px] text-gray-600 leading-5">
+                    {ranking.resumen}
+                  </p>
+                </div>
+              )}
+
+              {sortedBids.map((bid, idx) => {
+                const ev = evalMap.get(bid.id);
+                const destacada = idx === 0;
+                return (
                 <div
                   key={bid.id}
                   className={`rounded-md border px-3 py-2.5 ${
-                    idx === 0
+                    destacada
                       ? "bg-teal-50 border-teal-100"
                       : "bg-gray-50 border-[rgba(68,68,65,0.12)]"
                   }`}
@@ -244,6 +311,29 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
                       Q {bid.monto.toLocaleString("es-GT")}
                     </span>
                   </div>
+
+                  {/* Evaluación IA: score compuesto + etiqueta + razón */}
+                  {ev && (
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                          ev.score >= 70
+                            ? "bg-green-50 text-green-600"
+                            : ev.score >= 45
+                              ? "bg-amber-50 text-amber-600"
+                              : "bg-coral-50 text-coral-600"
+                        }`}
+                      >
+                        {ev.score}/100
+                      </span>
+                      {ev.etiqueta && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 border border-teal-100 text-teal-600 font-semibold">
+                          {ev.etiqueta}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2.5 mb-2 text-[11px] text-gray-400">
                     {bid.empresa?.score_plataforma != null && (
                       <span>
@@ -264,6 +354,11 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
                       <span className="text-amber-600">Nuevo en plataforma</span>
                     )}
                   </div>
+                  {ev?.razon && (
+                    <p className="text-[11px] text-gray-600 mb-2 leading-4">
+                      {ev.razon}
+                    </p>
+                  )}
                   {bid.nota && (
                     <p className="text-[11px] text-gray-400 italic mb-2 line-clamp-2">
                       &ldquo;{bid.nota}&rdquo;
@@ -286,7 +381,8 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
