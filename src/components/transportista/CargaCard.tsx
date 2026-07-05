@@ -2,6 +2,7 @@
 
 import type { CargaRow } from "@/app/(dashboard)/transportista/page";
 import { CONTENEDOR_LABEL } from "@/lib/labels";
+import { formatUSD } from "@/lib/money";
 
 function diasRestantes(fecha: string): { label: string; vencida: boolean } {
   const diff = Math.ceil(
@@ -74,7 +75,7 @@ export default function CargaCard({ carga, onBid, disabled = false }: Props) {
             <>
               <p className="text-[11px] text-gray-400">Tarifa ofrecida</p>
               <p className="text-[19px] font-semibold text-teal-600 leading-tight">
-                Q {carga.tarifa_referencia.toLocaleString("es-GT")}
+                {formatUSD(carga.tarifa_referencia)}
               </p>
               <p className="text-[11px] text-gray-400">o haz tu oferta</p>
             </>

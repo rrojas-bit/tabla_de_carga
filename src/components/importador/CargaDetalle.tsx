@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateCarga, cancelCarga } from "@/app/(dashboard)/importador/actions";
 import { getEtapas } from "@/lib/etapas";
+import { formatUSD } from "@/lib/money";
 import type {
   CargaDetalleRow,
   MovimientoResumen,
@@ -156,6 +157,46 @@ export default function CargaDetalle({ carga, movimiento }: Props) {
         </div>
       )}
 
+      {/* Datos DUCA / documentos aduaneros (solo lectura) */}
+      {(carga.duca_numero || carga.valor_mercancia_usd != null || carga.pais_origen || carga.mercancia) && (
+        <div className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-5 mb-4">
+          <p className="text-[13px] font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <i className="ti ti-file-invoice text-teal-400" />
+            Datos aduaneros
+          </p>
+          <div className="grid grid-cols-2 gap-3 text-[12px]">
+            {carga.mercancia && (
+              <div>
+                <p className="text-gray-400 mb-0.5">Mercancía</p>
+                <p className="text-gray-800 font-medium">{carga.mercancia}</p>
+              </div>
+            )}
+            {carga.duca_numero && (
+              <div>
+                <p className="text-gray-400 mb-0.5">
+                  DUCA{carga.duca_tipo ? `-${carga.duca_tipo}` : ""}
+                </p>
+                <p className="text-gray-800 font-medium">{carga.duca_numero}</p>
+              </div>
+            )}
+            {carga.valor_mercancia_usd != null && (
+              <div>
+                <p className="text-gray-400 mb-0.5">Valor mercancía</p>
+                <p className="text-gray-800 font-medium">
+                  {formatUSD(carga.valor_mercancia_usd)}
+                </p>
+              </div>
+            )}
+            {carga.pais_origen && (
+              <div>
+                <p className="text-gray-400 mb-0.5">País de origen</p>
+                <p className="text-gray-800 font-medium">{carga.pais_origen}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Progreso del viaje */}
       {movimiento && (
         <div className="bg-white rounded-lg border border-[rgba(68,68,65,0.12)] p-5 mb-4">
@@ -242,7 +283,7 @@ export default function CargaDetalle({ carga, movimiento }: Props) {
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <Field label="Tarifa referencia (Q)">
+              <Field label="Tarifa referencia (USD)">
                 <input
                   type="number"
                   name="tarifa_referencia"

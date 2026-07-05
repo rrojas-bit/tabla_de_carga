@@ -11,6 +11,7 @@ import {
 } from "@/app/(dashboard)/transportista/actions";
 import FlotaModal from "./FlotaModal";
 import { CHASSIS_LABEL } from "@/lib/labels";
+import { formatUSD } from "@/lib/money";
 
 type FlotaItem = {
   id: string;
@@ -371,7 +372,7 @@ function TarifaCard({ tarifa }: { tarifa: TarifaRuta }) {
             {tarifa.origen} → {tarifa.destino}
           </p>
           <p className="text-sm font-semibold text-teal-600">
-            Q {tarifa.tarifa_minima.toLocaleString("es-GT")}
+            {formatUSD(tarifa.tarifa_minima)}
           </p>
         </div>
         <button
@@ -440,7 +441,7 @@ function TarifaForm({ onDone }: { onDone: () => void }) {
         required
         min={1}
         step={50}
-        placeholder="Tarifa mínima (Q)"
+        placeholder="Tarifa mínima (USD)"
         className={inputCls}
       />
       <button

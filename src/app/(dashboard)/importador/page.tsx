@@ -57,6 +57,7 @@ export default async function ImportadorPage() {
     <ImportadorView
       puertos={puertosRes.data ?? []}
       misCargas={(misCargasRes.data ?? []) as unknown as CargaResumen[]}
+      empresaId={profile.empresa_id}
     />
   );
 }

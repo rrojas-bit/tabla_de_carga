@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { withdrawBid } from "@/app/(dashboard)/transportista/actions";
 import type { MiOferta } from "@/app/(dashboard)/transportista/page";
 import { CONTENEDOR_LABEL } from "@/lib/labels";
+import { formatUSD } from "@/lib/money";
 
 const ESTADO_BADGE: Record<string, string> = {
   pendiente: "bg-amber-50 text-amber-600",
@@ -82,7 +83,7 @@ export default function MisOfertas({ ofertas }: { ofertas: MiOferta[] }) {
                 )}
               </div>
               <span className="text-base font-semibold text-teal-600">
-                Q {oferta.monto.toLocaleString("es-GT")}
+                {formatUSD(oferta.monto)}
               </span>
             </div>
 

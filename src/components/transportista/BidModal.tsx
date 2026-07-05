@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { submitBid } from "@/app/(dashboard)/transportista/actions";
 import type { CargaRow } from "@/app/(dashboard)/transportista/page";
 import { CONTENEDOR_LABEL } from "@/lib/labels";
+import { formatUSD } from "@/lib/money";
 
 type FlotaItem = {
   id: string;
@@ -120,8 +121,8 @@ export default function BidModal({ carga, flota, onClose }: Props) {
           </p>
           {carga.tarifa_referencia && (
             <p>
-              <strong className="text-gray-800">Referencia:</strong> Q{" "}
-              {carga.tarifa_referencia.toLocaleString("es-GT")}
+              <strong className="text-gray-800">Referencia:</strong>{" "}
+              {formatUSD(carga.tarifa_referencia)}
             </p>
           )}
           {carga.sobrepeso && (
@@ -142,7 +143,7 @@ export default function BidModal({ carga, flota, onClose }: Props) {
 
           <div className="mb-3">
             <label htmlFor="bid-monto" className="block text-[12px] text-gray-400 mb-1">
-              Tu oferta (Q)
+              Tu oferta (USD)
             </label>
             <input
               id="bid-monto"
@@ -161,7 +162,7 @@ export default function BidModal({ carga, flota, onClose }: Props) {
             />
             <p className="text-[11px] text-gray-400 mt-1">
               {carga.tarifa_referencia
-                ? `Tarifa de referencia: Q ${carga.tarifa_referencia.toLocaleString("es-GT")}`
+                ? `Tarifa de referencia: ${formatUSD(carga.tarifa_referencia)}`
                 : "El cliente evalúa y elige la mejor oferta"}
             </p>
           </div>

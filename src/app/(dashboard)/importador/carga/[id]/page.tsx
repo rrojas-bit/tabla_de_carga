@@ -28,7 +28,8 @@ export default async function CargaDetallePage({
       id, numero, tipo_operacion, tipo_contenedor, peso_tm, sobrepeso,
       tarifa_referencia, destino_direccion, fecha_disponible, naviera,
       estado, modo_asignacion, notas, seguro_carga, gps_requerido,
-      created_at,
+      created_at, mercancia, duca_numero, duca_tipo, valor_mercancia_usd,
+      pais_origen,
       puerto:puertos(id, nombre),
       transportista:empresas!cargas_transportista_asignado_id_fkey(nombre, telefono_whatsapp, score_plataforma)
     `)
@@ -72,6 +73,11 @@ export type CargaDetalleRow = {
   seguro_carga: boolean | null;
   gps_requerido: boolean | null;
   created_at: string;
+  mercancia: string | null;
+  duca_numero: string | null;
+  duca_tipo: string | null;
+  valor_mercancia_usd: number | null;
+  pais_origen: string | null;
   puerto: { id: string; nombre: string } | null;
   transportista: {
     nombre: string;

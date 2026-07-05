@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { acceptBid, rejectBid } from "@/app/(dashboard)/importador/actions";
 import { createClient } from "@/lib/supabase/client";
+import { formatUSD } from "@/lib/money";
 import type { CargaResumen } from "@/app/(dashboard)/importador/page";
 
 const CONTENEDOR_LABEL: Record<string, string> = {
@@ -241,7 +242,7 @@ export default function BidsPanel({ carga }: { carga: CargaResumen | null }) {
                       {bid.empresa?.nombre ?? "Transportista"}
                     </span>
                     <span className="text-base font-semibold text-teal-600">
-                      Q {bid.monto.toLocaleString("es-GT")}
+                      {formatUSD(bid.monto)}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2.5 mb-2 text-[11px] text-gray-400">

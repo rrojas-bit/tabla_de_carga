@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { extraerDocumento, validarExtraccion } from "@/lib/ai/extract";
 import type { Enums } from "@/types/database";
+
+const LIMITE_DOCUMENTOS_POR_DIA = 30;
 
 export async function publishCarga(formData: FormData) {
   const supabase = await createClient();
@@ -32,32 +35,57 @@ export async function publishCarga(formData: FormData) {
   const modo_asignacion = formData.get("modo_asignacion") as Enums<"asignacion_modo">;
   const seguro_carga = formData.get("seguro_carga") === "si";
   const gps_requerido = formData.get("gps_requerido") === "si";
+  const mercancia = ((formData.get("mercancia") as string) || "").trim() || null;
+  const duca_numero = ((formData.get("duca_numero") as string) || "").trim() || null;
+  const duca_tipo_raw = (formData.get("duca_tipo") as string) || "";
+  const duca_tipo = ["D", "F", "T"].includes(duca_tipo_raw) ? duca_tipo_raw : null;
+  const valor_raw = formData.get("valor_mercancia_usd") as string;
+  const valor_mercancia_usd =
+    valor_raw && parseFloat(valor_raw) >= 0 ? parseFloat(valor_raw) : null;
+  const pais_origen =
+    ((formData.get("pais_origen") as string) || "").trim().toUpperCase().slice(0, 2) || null;
+  const documentoIds = formData.getAll("documento_id") as string[];
 
   if (!tipo_operacion || !puerto_id || !tipo_contenedor || !destino_direccion || !fecha_disponible) {
     return { error: "Completa todos los campos obligatorios" };
   }
 
-  // Umbral legal de sobrepeso: 21 TM de carga neta (Acuerdo Gubernativo 379-2010)
-  const sobrepeso = peso_tm != null && peso_tm > 21;
-
-  const { error } = await supabase.from("cargas").insert({
-    cliente_empresa_id: profile.empresa_id,
-    tipo_operacion,
-    puerto_id,
-    tipo_contenedor,
-    peso_tm,
-    sobrepeso,
-    naviera,
-    destino_direccion,
-    fecha_disponible,
-    tarifa_referencia,
-    modo_asignacion,
-    seguro_carga,
-    gps_requerido,
-    estado: "publicada",
-  });
+  // sobrepeso es una columna generada en la base de datos (peso_tm > 21 TM,
+  // Acuerdo Gubernativo 379-2010) — no se envía en el insert.
+  const { data: nuevaCarga, error } = await supabase
+    .from("cargas")
+    .insert({
+      cliente_empresa_id: profile.empresa_id,
+      tipo_operacion,
+      puerto_id,
+      tipo_contenedor,
+      peso_tm,
+      naviera,
+      destino_direccion,
+      fecha_disponible,
+      tarifa_referencia,
+      modo_asignacion,
+      seguro_carga,
+      gps_requerido,
+      mercancia,
+      duca_numero,
+      duca_tipo,
+      valor_mercancia_usd,
+      pais_origen,
+      estado: "publicada",
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  if (documentoIds.length > 0) {
+    await supabase
+      .from("documentos_carga")
+      .update({ carga_id: nuevaCarga.id })
+      .in("id", documentoIds)
+      .eq("empresa_id", profile.empresa_id);
+  }
 
   revalidatePath("/importador");
   return { success: true };
@@ -205,7 +233,6 @@ export async function updateCarga(cargaId: string, formData: FormData) {
     .from("cargas")
     .update({
       peso_tm,
-      sobrepeso: peso_tm != null && peso_tm > 21,
       tarifa_referencia,
       destino_direccion,
       fecha_disponible,
@@ -282,4 +309,87 @@ export async function rejectBid(bidId: string) {
 
   revalidatePath("/importador");
   return { success: true };
+}
+
+export async function procesarDocumento(documentoId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("empresa_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.empresa_id) return { error: "No se encontró empresa" };
+
+  const { data: doc } = await supabase
+    .from("documentos_carga")
+    .select("id, storage_path, mime_type")
+    .eq("id", documentoId)
+    .eq("empresa_id", profile.empresa_id)
+    .single();
+
+  if (!doc) return { error: "Documento no encontrado o sin permiso" };
+
+  const inicioDelDia = new Date();
+  inicioDelDia.setHours(0, 0, 0, 0);
+  const { count } = await supabase
+    .from("documentos_carga")
+    .select("id", { count: "exact", head: true })
+    .eq("empresa_id", profile.empresa_id)
+    .gte("created_at", inicioDelDia.toISOString());
+
+  if ((count ?? 0) > LIMITE_DOCUMENTOS_POR_DIA) {
+    return {
+      error:
+        "Alcanzaste el límite diario de documentos procesados con IA. Llena el formulario manualmente o intenta mañana.",
+    };
+  }
+
+  await supabase
+    .from("documentos_carga")
+    .update({ estado_extraccion: "procesando" })
+    .eq("id", documentoId);
+
+  const { data: archivo, error: downloadError } = await supabase.storage
+    .from("documentos")
+    .download(doc.storage_path);
+
+  if (downloadError || !archivo) {
+    await supabase
+      .from("documentos_carga")
+      .update({ estado_extraccion: "error" })
+      .eq("id", documentoId);
+    return { error: "No se pudo descargar el documento" };
+  }
+
+  try {
+    const bytes = Buffer.from(await archivo.arrayBuffer());
+    const bruta = await extraerDocumento(bytes, doc.mime_type);
+    const extraccion = validarExtraccion(bruta);
+
+    const { error: updateError } = await supabase
+      .from("documentos_carga")
+      .update({ extraccion, estado_extraccion: "completada" })
+      .eq("id", documentoId);
+
+    if (updateError) return { error: updateError.message };
+
+    return { success: true, extraccion };
+  } catch (err) {
+    await supabase
+      .from("documentos_carga")
+      .update({ estado_extraccion: "error" })
+      .eq("id", documentoId);
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error al procesar el documento con IA",
+    };
+  }
 }

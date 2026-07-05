@@ -8,6 +8,7 @@ import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
 import MisOfertas from "./MisOfertas";
 import { createClient } from "@/lib/supabase/client";
+import { formatUSD } from "@/lib/money";
 import type { CargaRow, MiOferta } from "@/app/(dashboard)/transportista/page";
 
 type Empresa = {
@@ -143,13 +144,13 @@ export default function TransportistaView({
             const monto = payload.new.monto as number;
             if (estado === "aceptada") {
               toast.success(
-                `¡Tu oferta de Q ${monto.toLocaleString("es-GT")} fue aceptada! La carga es tuya.`,
+                `¡Tu oferta de ${formatUSD(monto)} fue aceptada! La carga es tuya.`,
                 { duration: 10000 }
               );
               router.refresh();
             } else if (estado === "rechazada") {
               toast.info(
-                `Tu oferta de Q ${monto.toLocaleString("es-GT")} no fue seleccionada.`
+                `Tu oferta de ${formatUSD(monto)} no fue seleccionada.`
               );
               router.refresh();
             }
@@ -264,7 +265,7 @@ export default function TransportistaView({
           />
           <StatCard
             label="Ingresos mes"
-            value={`Q ${ingresosMes.toLocaleString("es-GT")}`}
+            value={formatUSD(ingresosMes)}
             sub={
               variacion != null
                 ? `${variacion >= 0 ? "+" : ""}${variacion}% vs mes anterior`

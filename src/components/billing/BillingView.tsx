@@ -271,7 +271,7 @@ function ImportadorPricing() {
 
           <div className="mb-4">
             <span className="text-[28px] font-semibold text-gray-800">
-              Q150
+              $150
             </span>
             <span className="text-[13px] text-gray-400 ml-1">/ carga</span>
           </div>
@@ -314,7 +314,7 @@ function ImportadorPricing() {
 
           <div className="mb-4">
             <span className="text-[28px] font-semibold text-gray-800">
-              Q899
+              $899
             </span>
             <span className="text-[13px] text-gray-400 ml-1">/ mes</span>
             <span className="ml-2 text-[11px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">

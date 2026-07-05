@@ -13,6 +13,7 @@ type Puerto = { id: string; nombre: string; codigo: string };
 type Props = {
   puertos: Puerto[];
   misCargas: CargaResumen[];
+  empresaId: string;
 };
 
 const ESTADO_BADGE: Record<string, string> = {
@@ -41,7 +42,7 @@ const CONTENEDOR_LABEL: Record<string, string> = {
   "45": "45'",
 };
 
-export default function ImportadorView({ puertos, misCargas }: Props) {
+export default function ImportadorView({ puertos, misCargas, empresaId }: Props) {
   const [selectedCargaId, setSelectedCargaId] = useState<string | null>(
     misCargas.find((c) => c.estado === "en_subasta" || c.estado === "publicada")?.id ?? null
   );
@@ -69,7 +70,7 @@ export default function ImportadorView({ puertos, misCargas }: Props) {
     <div className="flex" style={{ minHeight: "calc(100vh - 56px)" }}>
       {/* Main: form + cargas list */}
       <main className="flex-1 p-6 bg-bg overflow-y-auto">
-        <PublicarCargaForm puertos={puertos} />
+        <PublicarCargaForm puertos={puertos} empresaId={empresaId} />
 
         {visibleCargas.length > 0 && (
           <div className="mt-6">
