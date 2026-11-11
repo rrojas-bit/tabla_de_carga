@@ -201,6 +201,18 @@ export default function TopNav({ profile }: { profile: Profile }) {
                 </div>
               )}
               <Link
+                href="/perfil"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-[13px] transition-colors hover:bg-[var(--surface-hover)]"
+                style={{ color: "var(--text-body)" }}
+              >
+                <i
+                  className="ti ti-user-circle text-base"
+                  style={{ color: "var(--text-muted)" }}
+                />
+                Perfil
+              </Link>
+              <Link
                 href="/billing"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2 text-[13px] transition-colors hover:bg-[var(--surface-hover)]"
