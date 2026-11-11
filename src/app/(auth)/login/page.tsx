@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { registerUser } from "./actions";
@@ -30,6 +30,35 @@ export default function LoginPage() {
   const [empresa, setEmpresa] = useState("");
   const [rtu, setRtu] = useState("");
   const [rol, setRol] = useState("transportista");
+  const [info, setInfo] = useState<string | null>(null);
+
+  // Los enlaces enviados desde el panel de Supabase llegan al Site URL
+  // ("/" → middleware → "/login") con los tokens en el hash: reenviarlos.
+  useEffect(() => {
+    const h = window.location.hash;
+    if (h.includes("access_token=") || h.includes("error_description=")) {
+      window.location.replace("/auth/callback" + h);
+    }
+  }, []);
+
+  async function handleForgotPassword() {
+    setError(null);
+    setInfo(null);
+    if (!email) {
+      setError("Escribe tu correo y vuelve a presionar “¿Olvidaste tu contraseña?”.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setInfo("Te enviamos un enlace para cambiar tu contraseña. Ábrelo en este mismo navegador.");
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -171,6 +200,19 @@ export default function LoginPage() {
               }}
             >
               {error}
+            </div>
+          )}
+
+          {info && (
+            <div
+              className="mb-4 p-3 rounded-[var(--radius-md)] text-[12px]"
+              style={{
+                background: "var(--blue-50)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-strong)",
+              }}
+            >
+              {info}
             </div>
           )}
 
@@ -353,6 +395,18 @@ export default function LoginPage() {
             >
               {loading ? "..." : mode === "login" ? "Entrar" : "Crear cuenta →"}
             </button>
+
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full mt-3 text-[12px] font-medium disabled:opacity-60"
+                style={{ color: "var(--color-primary)" }}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            )}
           </form>
         </div>
 
