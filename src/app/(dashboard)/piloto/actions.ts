@@ -13,11 +13,14 @@ export async function avanzarEtapa(movimientoId: string, etapaActual: number) {
 
   const { data: mov } = await supabase
     .from("movimientos")
-    .select("id, etapa_actual, historial, tipo_flujo, carga_id")
+    .select("id, etapa_actual, historial, tipo_flujo, carga_id, piloto_id")
     .eq("id", movimientoId)
     .single();
 
   if (!mov) return { error: "Movimiento no encontrado" };
+  if (!mov.piloto_id) {
+    return { error: "Asigna un piloto a este viaje antes de avanzar (Transportista → Mis viajes)." };
+  }
 
   const maxEtapa = getMaxEtapa(mov.tipo_flujo);
   if (etapaActual >= maxEtapa) return { error: "Viaje ya completado" };
@@ -43,13 +46,8 @@ export async function avanzarEtapa(movimientoId: string, etapaActual: number) {
 
   if (error) return { error: error.message };
 
-  // Última etapa: la carga queda entregada
-  if (nuevaEtapa === maxEtapa && mov.carga_id) {
-    await supabase
-      .from("cargas")
-      .update({ estado: "entregada" })
-      .eq("id", mov.carga_id);
-  }
+  // El estado de la carga (en_transito / entregada) lo actualiza el
+  // trigger trg_sync_estado_carga en la base de datos.
 
   revalidatePath("/piloto");
   return { success: true, nuevaEtapa };

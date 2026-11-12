@@ -8,9 +8,9 @@ import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
 import TomarCargaModal from "./TomarCargaModal";
 import MisOfertas from "./MisOfertas";
-import MisViajes, { faseDeViaje } from "./MisViajes";
+import MisViajes, { faseDeViaje, sinPiloto } from "./MisViajes";
 import { createClient } from "@/lib/supabase/client";
-import type { CargaRow, MiOferta, Viaje } from "@/app/(dashboard)/transportista/page";
+import type { CargaRow, MiOferta, Viaje, PilotoItem } from "@/app/(dashboard)/transportista/page";
 
 type Empresa = {
   id: string;
@@ -48,6 +48,7 @@ type Props = {
   ingresosMes: number;
   ingresosMesAnterior: number;
   viajes: Viaje[];
+  pilotos: PilotoItem[];
 };
 
 type Filter = "todas" | "importacion" | "exportacion" | "reefer";
@@ -71,6 +72,7 @@ export default function TransportistaView({
   ingresosMes,
   ingresosMesAnterior,
   viajes,
+  pilotos,
 }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("todas");
@@ -206,6 +208,7 @@ export default function TransportistaView({
   const viajesActivos = viajes.filter(
     (v) => faseDeViaje(v) !== "completado"
   ).length;
+  const viajesSinPiloto = viajes.filter(sinPiloto).length;
 
   const loadMoreBtn = hasMore && tab === "disponibles" && (
     <button
@@ -407,7 +410,10 @@ export default function TransportistaView({
               {viajesActivos > 0 && (
                 <span
                   className="text-[11px] px-1.5 py-0.5 rounded-full font-semibold"
-                  style={{ background: "var(--color-primary-weak)", color: "var(--color-primary)" }}
+                  style={viajesSinPiloto > 0
+                    ? { background: "var(--amber-50)", color: "var(--amber-600)" }
+                    : { background: "var(--color-primary-weak)", color: "var(--color-primary)" }}
+                  title={viajesSinPiloto > 0 ? `${viajesSinPiloto} sin piloto asignado` : undefined}
                 >
                   {viajesActivos}
                 </span>
@@ -444,7 +450,7 @@ export default function TransportistaView({
 
         {/* Content */}
         {tab === "viajes" ? (
-          <MisViajes viajes={viajes} />
+          <MisViajes viajes={viajes} pilotos={pilotos} flota={flota} />
         ) : tab === "ofertas" ? (
           <MisOfertas ofertas={misOfertas} />
         ) : filtered.length === 0 ? (

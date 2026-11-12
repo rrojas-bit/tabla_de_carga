@@ -551,6 +551,24 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_piloto: {
+        Args: {
+          p_nombre: string
+          p_dpi: string
+          p_telefono?: string
+          p_licencia_tipo?: string
+          p_licencia_vencimiento?: string
+        }
+        Returns: string
+      }
+      asignar_viaje: {
+        Args: {
+          p_movimiento_id: string
+          p_piloto_id: string
+          p_cabezal_id?: string
+        }
+        Returns: undefined
+      }
       tomar_carga: {
         Args: {
           p_carga_id: string

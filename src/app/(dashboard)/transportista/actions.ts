@@ -105,6 +105,43 @@ export async function tomarCarga(cargaId: string, cabezalId: string | null) {
   return { success: true };
 }
 
+export async function registrarPiloto(input: {
+  nombre: string;
+  dpi: string;
+  telefono?: string;
+  licenciaTipo?: string;
+  licenciaVencimiento?: string;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("registrar_piloto", {
+    p_nombre: input.nombre,
+    p_dpi: input.dpi,
+    p_telefono: input.telefono || undefined,
+    p_licencia_tipo: input.licenciaTipo || undefined,
+    p_licencia_vencimiento: input.licenciaVencimiento || undefined,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/transportista");
+  return { success: true, pilotoId: data as string };
+}
+
+export async function asignarViaje(
+  movimientoId: string,
+  pilotoId: string,
+  cabezalId: string | null
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("asignar_viaje", {
+    p_movimiento_id: movimientoId,
+    p_piloto_id: pilotoId,
+    p_cabezal_id: cabezalId ?? undefined,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/transportista");
+  revalidatePath("/piloto");
+  return { success: true };
+}
+
 export async function withdrawBid(bidId: string) {
   const supabase = await createClient();
   const {
