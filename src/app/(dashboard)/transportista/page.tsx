@@ -57,6 +57,7 @@ export default async function TransportistaPage() {
     statsRes,
     misOfertasRes,
     ingresosRes,
+    viajesRes,
   ] = await Promise.all([
     supabase
       .from("empresas")
@@ -126,6 +127,25 @@ export default async function TransportistaPage() {
       .eq("empresa_id", profile.empresa_id)
       .eq("estado", "aceptada")
       .gte("updated_at", inicioMesAnterior.toISOString()),
+
+    // Mis viajes: cargas asignadas a esta empresa con su movimiento
+    supabase
+      .from("cargas")
+      .select(`
+        id, numero, tipo_operacion, tipo_contenedor, mercancia, destino_direccion,
+        fecha_disponible, estado, updated_at,
+        puerto:puertos(nombre),
+        bid:bids!fk_bid_ganador(monto),
+        movimientos(
+          id, etapa_actual, tipo_flujo, historial, updated_at,
+          cabezal:flota(placa),
+          piloto:pilotos(nombre_completo)
+        )
+      `)
+      .eq("transportista_asignado_id", profile.empresa_id)
+      .in("estado", ["asignada", "en_transito", "entregada"])
+      .order("fecha_disponible", { ascending: true })
+      .limit(60),
   ]);
 
   const ingresosMes =
@@ -149,9 +169,33 @@ export default async function TransportistaPage() {
       misOfertas={(misOfertasRes.data ?? []) as unknown as MiOferta[]}
       ingresosMes={ingresosMes}
       ingresosMesAnterior={ingresosMesAnterior}
+      viajes={(viajesRes.data ?? []) as unknown as Viaje[]}
     />
   );
 }
+
+export type Viaje = {
+  id: string;
+  numero: string | null;
+  tipo_operacion: "importacion" | "exportacion";
+  tipo_contenedor: string;
+  mercancia: string | null;
+  destino_direccion: string;
+  fecha_disponible: string;
+  estado: "asignada" | "en_transito" | "entregada";
+  updated_at: string;
+  puerto: { nombre: string } | null;
+  bid: { monto: number } | null;
+  movimientos: Array<{
+    id: string;
+    etapa_actual: number;
+    tipo_flujo: "importacion" | "exportacion";
+    historial: unknown[] | null;
+    updated_at: string;
+    cabezal: { placa: string } | null;
+    piloto: { nombre_completo: string } | null;
+  }>;
+};
 
 // Type used only in this file for passing to client component
 export type CargaRow = {

@@ -8,8 +8,9 @@ import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
 import TomarCargaModal from "./TomarCargaModal";
 import MisOfertas from "./MisOfertas";
+import MisViajes, { faseDeViaje } from "./MisViajes";
 import { createClient } from "@/lib/supabase/client";
-import type { CargaRow, MiOferta } from "@/app/(dashboard)/transportista/page";
+import type { CargaRow, MiOferta, Viaje } from "@/app/(dashboard)/transportista/page";
 
 type Empresa = {
   id: string;
@@ -46,6 +47,7 @@ type Props = {
   misOfertas: MiOferta[];
   ingresosMes: number;
   ingresosMesAnterior: number;
+  viajes: Viaje[];
 };
 
 type Filter = "todas" | "importacion" | "exportacion" | "reefer";
@@ -68,10 +70,11 @@ export default function TransportistaView({
   misOfertas,
   ingresosMes,
   ingresosMesAnterior,
+  viajes,
 }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("todas");
-  const [tab, setTab] = useState<"disponibles" | "ofertas">("disponibles");
+  const [tab, setTab] = useState<"disponibles" | "ofertas" | "viajes">("disponibles");
   const [bidCarga, setBidCarga] = useState<CargaRow | null>(null);
   const [tomarCarga, setTomarCarga] = useState<CargaRow | null>(null);
   const [cargas, setCargas] = useState<CargaRow[]>(initialCargas);
@@ -160,8 +163,20 @@ export default function TransportistaView({
         .subscribe();
     }
 
+    // Mis viajes: refrescar cuando el piloto avanza una etapa (RLS limita
+    // los eventos a los movimientos de esta empresa)
+    const movChannel = supabase
+      .channel("mis_viajes_realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "movimientos" },
+        () => router.refresh()
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(movChannel);
       if (bidsChannel) supabase.removeChannel(bidsChannel);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,6 +202,9 @@ export default function TransportistaView({
       : null;
   const ofertasPendientes = misOfertas.filter(
     (o) => o.estado === "pendiente"
+  ).length;
+  const viajesActivos = viajes.filter(
+    (v) => faseDeViaje(v) !== "completado"
   ).length;
 
   const loadMoreBtn = hasMore && tab === "disponibles" && (
@@ -372,6 +390,29 @@ export default function TransportistaView({
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setTab("viajes")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-all whitespace-nowrap"
+              style={tab === "viajes"
+                ? {
+                    background: "var(--surface-card)",
+                    color: "var(--text-strong)",
+                    boxShadow: "var(--elevation-1)",
+                    border: "1px solid var(--border-default)",
+                  }
+                : { color: "var(--text-muted)" }
+              }
+            >
+              Mis viajes
+              {viajesActivos > 0 && (
+                <span
+                  className="text-[11px] px-1.5 py-0.5 rounded-full font-semibold"
+                  style={{ background: "var(--color-primary-weak)", color: "var(--color-primary)" }}
+                >
+                  {viajesActivos}
+                </span>
+              )}
+            </button>
           </div>
 
           {tab === "disponibles" && (
@@ -402,7 +443,9 @@ export default function TransportistaView({
         </div>
 
         {/* Content */}
-        {tab === "ofertas" ? (
+        {tab === "viajes" ? (
+          <MisViajes viajes={viajes} />
+        ) : tab === "ofertas" ? (
           <MisOfertas ofertas={misOfertas} />
         ) : filtered.length === 0 ? (
           <>
@@ -442,6 +485,7 @@ export default function TransportistaView({
           onClose={() => setTomarCarga(null)}
           onTomada={(id) => {
             setCargas((prev) => prev.filter((c) => c.id !== id));
+            setTab("viajes");
             router.refresh();
           }}
         />
