@@ -58,6 +58,7 @@ export default async function TransportistaPage() {
     misOfertasRes,
     ingresosRes,
     viajesRes,
+    pilotosRes,
   ] = await Promise.all([
     supabase
       .from("empresas")
@@ -146,7 +147,18 @@ export default async function TransportistaPage() {
       .in("estado", ["asignada", "en_transito", "entregada"])
       .order("fecha_disponible", { ascending: true })
       .limit(60),
+
+    supabase
+      .from("piloto_empresa")
+      .select("piloto:pilotos(id, nombre_completo, telefono)")
+      .eq("empresa_id", profile.empresa_id)
+      .eq("activo", true),
   ]);
+
+  const pilotos = (pilotosRes.data ?? [])
+    .map((r) => (r as unknown as { piloto: PilotoItem | null }).piloto)
+    .filter((p): p is PilotoItem => p !== null)
+    .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
 
   const ingresosMes =
     ingresosRes.data
@@ -170,9 +182,16 @@ export default async function TransportistaPage() {
       ingresosMes={ingresosMes}
       ingresosMesAnterior={ingresosMesAnterior}
       viajes={(viajesRes.data ?? []) as unknown as Viaje[]}
+      pilotos={pilotos}
     />
   );
 }
+
+export type PilotoItem = {
+  id: string;
+  nombre_completo: string;
+  telefono: string | null;
+};
 
 export type Viaje = {
   id: string;

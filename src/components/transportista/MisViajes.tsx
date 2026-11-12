@@ -1,11 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import type { Viaje } from "@/app/(dashboard)/transportista/page";
+import type { PilotoItem, Viaje } from "@/app/(dashboard)/transportista/page";
+import AsignarViajeModal from "./AsignarViajeModal";
 import { CONTENEDOR_LABEL } from "@/lib/labels";
 import { getEtapas } from "@/lib/etapas";
 
 export type ViajeFase = "por_iniciar" | "en_curso" | "completado";
+
+type FlotaItem = { id: string; placa: string; tipo: string; estado: string };
+
+export function sinPiloto(v: Viaje): boolean {
+  return v.estado !== "entregada" && !v.movimientos?.[0]?.piloto;
+}
 
 export function faseDeViaje(v: Viaje): ViajeFase {
   if (v.estado === "entregada") return "completado";
@@ -34,7 +41,16 @@ function formatFecha(fecha: string) {
   });
 }
 
-export default function MisViajes({ viajes }: { viajes: Viaje[] }) {
+export default function MisViajes({
+  viajes,
+  pilotos,
+  flota,
+}: {
+  viajes: Viaje[];
+  pilotos: PilotoItem[];
+  flota: FlotaItem[];
+}) {
+  const [asignar, setAsignar] = useState<Viaje | null>(null);
   const counts = {
     por_iniciar: viajes.filter((v) => faseDeViaje(v) === "por_iniciar").length,
     en_curso: viajes.filter((v) => faseDeViaje(v) === "en_curso").length,
@@ -46,11 +62,14 @@ export default function MisViajes({ viajes }: { viajes: Viaje[] }) {
 
   const lista = viajes
     .filter((v) => faseDeViaje(v) === fase)
-    .sort((a, b) =>
-      fase === "completado"
+    .sort((a, b) => {
+      // Pendientes de piloto siempre arriba
+      const pa = Number(sinPiloto(b)) - Number(sinPiloto(a));
+      if (pa !== 0) return pa;
+      return fase === "completado"
         ? b.updated_at.localeCompare(a.updated_at)
-        : a.fecha_disponible.localeCompare(b.fecha_disponible)
-    );
+        : a.fecha_disponible.localeCompare(b.fecha_disponible);
+    });
 
   return (
     <div>
@@ -89,13 +108,33 @@ export default function MisViajes({ viajes }: { viajes: Viaje[] }) {
           </p>
         </div>
       ) : (
-        lista.map((v) => <ViajeCard key={v.id} viaje={v} fase={fase} />)
+        lista.map((v) => (
+          <ViajeCard key={v.id} viaje={v} fase={fase} onAsignar={() => setAsignar(v)} />
+        ))
+      )}
+
+      {asignar && (
+        <AsignarViajeModal
+          viaje={asignar}
+          pilotos={pilotos}
+          flota={flota}
+          onClose={() => setAsignar(null)}
+        />
       )}
     </div>
   );
 }
 
-function ViajeCard({ viaje, fase }: { viaje: Viaje; fase: ViajeFase }) {
+function ViajeCard({
+  viaje,
+  fase,
+  onAsignar,
+}: {
+  viaje: Viaje;
+  fase: ViajeFase;
+  onAsignar: () => void;
+}) {
+  const pendientePiloto = sinPiloto(viaje);
   const isImport = viaje.tipo_operacion === "importacion";
   const puerto = viaje.puerto?.nombre ?? "Puerto";
   const origen = isImport ? puerto : viaje.destino_direccion;
@@ -109,9 +148,29 @@ function ViajeCard({ viaje, fase }: { viaje: Viaje; fase: ViajeFase }) {
 
   return (
     <div
-      className="bg-white rounded-[var(--radius-lg)] p-[17px] mb-2.5"
-      style={{ border: "1px solid var(--border-default)" }}
+      className="bg-white rounded-[var(--radius-lg)] mb-2.5 overflow-hidden"
+      style={{ border: `1px solid ${pendientePiloto ? "var(--amber-600)" : "var(--border-default)"}` }}
     >
+      {pendientePiloto && (
+        <div
+          className="flex items-center justify-between gap-3 px-[17px] py-2.5"
+          style={{ background: "var(--amber-50)", borderBottom: "1px solid var(--amber-600)" }}
+          role="status"
+        >
+          <span className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--amber-600)" }}>
+            <i className="ti ti-alert-triangle text-[16px]" aria-hidden="true" />
+            Pendiente asignar piloto
+          </span>
+          <button
+            onClick={onAsignar}
+            className="px-3 py-1.5 rounded-[var(--radius-md)] text-[12px] font-semibold text-white flex-shrink-0"
+            style={{ background: "var(--amber-600)" }}
+          >
+            Asignar piloto
+          </button>
+        </div>
+      )}
+      <div className="p-[17px]">
       {/* Encabezado */}
       <div className="flex justify-between items-start gap-3 mb-2.5">
         <div className="min-w-0">
@@ -179,6 +238,13 @@ function ViajeCard({ viaje, fase }: { viaje: Viaje; fase: ViajeFase }) {
         </div>
       </div>
 
+      {pendientePiloto && (
+        <p className="flex items-center gap-1 text-[11px] -mt-1 mb-2.5" style={{ color: "var(--text-muted)" }}>
+          <i className="ti ti-lock text-[13px]" aria-hidden="true" />
+          No puede avanzar de etapa hasta asignar un piloto
+        </p>
+      )}
+
       {/* Pie: fecha, cabezal, piloto */}
       <div
         className="flex flex-wrap gap-x-4 gap-y-1 pt-2.5 text-[12px]"
@@ -216,6 +282,7 @@ function ViajeCard({ viaje, fase }: { viaje: Viaje; fase: ViajeFase }) {
             </span>
           )
         )}
+      </div>
       </div>
     </div>
   );
