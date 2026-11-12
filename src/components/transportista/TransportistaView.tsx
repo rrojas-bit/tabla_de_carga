@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Sidebar from "./Sidebar";
 import CargaCard from "./CargaCard";
 import BidModal from "./BidModal";
+import TomarCargaModal from "./TomarCargaModal";
 import MisOfertas from "./MisOfertas";
 import { createClient } from "@/lib/supabase/client";
 import type { CargaRow, MiOferta } from "@/app/(dashboard)/transportista/page";
@@ -72,6 +73,7 @@ export default function TransportistaView({
   const [filter, setFilter] = useState<Filter>("todas");
   const [tab, setTab] = useState<"disponibles" | "ofertas">("disponibles");
   const [bidCarga, setBidCarga] = useState<CargaRow | null>(null);
+  const [tomarCarga, setTomarCarga] = useState<CargaRow | null>(null);
   const [cargas, setCargas] = useState<CargaRow[]>(initialCargas);
   const [newCargasCount, setNewCargasCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -414,6 +416,7 @@ export default function TransportistaView({
                 key={carga.id}
                 carga={carga}
                 onBid={(c) => setBidCarga(c)}
+                onTomar={(c) => setTomarCarga(c)}
                 disabled={isPendiente}
               />
             ))}
@@ -428,6 +431,19 @@ export default function TransportistaView({
           carga={bidCarga}
           flota={flota}
           onClose={() => setBidCarga(null)}
+        />
+      )}
+
+      {/* Tomar carga a tarifa publicada */}
+      {tomarCarga && (
+        <TomarCargaModal
+          carga={tomarCarga}
+          flota={flota}
+          onClose={() => setTomarCarga(null)}
+          onTomada={(id) => {
+            setCargas((prev) => prev.filter((c) => c.id !== id));
+            router.refresh();
+          }}
         />
       )}
     </div>

@@ -59,6 +59,52 @@ export async function submitBid(formData: FormData) {
   return { success: true };
 }
 
+// Toma la carga a la tarifa publicada: queda asignada de inmediato.
+// La validación y el bloqueo contra tomas simultáneas están en la
+// función SQL public.tomar_carga.
+export async function tomarCarga(cargaId: string, cabezalId: string | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { error } = await supabase.rpc("tomar_carga", {
+    p_carga_id: cargaId,
+    p_cabezal_id: cabezalId ?? undefined,
+  });
+
+  if (error) return { error: error.message };
+
+  // Aviso al cliente (best-effort)
+  const { data: carga } = await supabase
+    .from("cargas")
+    .select("numero, tarifa_referencia, cliente_empresa_id")
+    .eq("id", cargaId)
+    .maybeSingle();
+
+  const { data: cliente } = carga
+    ? await supabase
+        .from("empresas")
+        .select("telefono_whatsapp")
+        .eq("id", carga.cliente_empresa_id)
+        .maybeSingle()
+    : { data: null };
+
+  const telefono = cliente?.telefono_whatsapp;
+  if (telefono) {
+    const { sendWhatsApp } = await import("@/lib/notifications/whatsapp");
+    await sendWhatsApp(
+      telefono,
+      `🚛 *ContainerGT* — Tu carga *#${carga?.numero ?? cargaId.slice(0, 8)}* fue tomada por un transportista a la tarifa publicada (Q ${carga?.tarifa_referencia?.toLocaleString("es-GT")}).\n\nInicia sesión para ver los detalles.`
+    );
+  }
+
+  revalidatePath("/transportista");
+  revalidatePath("/importador");
+  return { success: true };
+}
+
 export async function withdrawBid(bidId: string) {
   const supabase = await createClient();
   const {
