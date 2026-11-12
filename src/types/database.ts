@@ -551,6 +551,13 @@ export type Database = {
         }
         Returns: string
       }
+      tomar_carga: {
+        Args: {
+          p_carga_id: string
+          p_cabezal_id?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       asignacion_modo: "manual" | "automatico"

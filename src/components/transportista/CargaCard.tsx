@@ -23,10 +23,11 @@ function formatFecha(fecha: string): string {
 type Props = {
   carga: CargaRow;
   onBid: (carga: CargaRow) => void;
+  onTomar?: (carga: CargaRow) => void;
   disabled?: boolean;
 };
 
-export default function CargaCard({ carga, onBid, disabled = false }: Props) {
+export default function CargaCard({ carga, onBid, onTomar, disabled = false }: Props) {
   const isImport = carga.tipo_operacion === "importacion";
   const bidCount = carga.bids?.[0]?.count ?? 0;
   const contenedorLabel = CONTENEDOR_LABEL[carga.tipo_contenedor] ?? carga.tipo_contenedor;
@@ -40,6 +41,7 @@ export default function CargaCard({ carga, onBid, disabled = false }: Props) {
     : carga.puerto?.nombre ?? "Puerto";
 
   const bidDisabled = disabled || vencida;
+  const puedeTomar = !bidDisabled && !!carga.tarifa_referencia && !!onTomar;
 
   return (
     <div
@@ -177,23 +179,42 @@ export default function CargaCard({ carga, onBid, disabled = false }: Props) {
             ? "Sin ofertas aún — sé el primero"
             : `${bidCount} ${bidCount === 1 ? "oferta" : "ofertas"} · ${restanteLabel}`}
         </span>
-        <button
-          onClick={() => onBid(carga)}
-          disabled={bidDisabled}
-          title={
-            disabled
-              ? "Tu cuenta está en revisión — podrás ofertar al ser aprobada"
+        <div className="flex flex-wrap justify-end gap-2 flex-shrink-0">
+          {puedeTomar && (
+            <button
+              onClick={() => onBid(carga)}
+              className="px-4 py-2 rounded-[var(--radius-md)] text-[13px] font-semibold transition-colors border hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: "var(--border-default)", color: "var(--text-strong)" }}
+            >
+              Hacer oferta
+            </button>
+          )}
+          <button
+            onClick={() => (puedeTomar ? onTomar?.(carga) : onBid(carga))}
+            disabled={bidDisabled}
+            title={
+              disabled
+                ? "Tu cuenta está en revisión — podrás ofertar al ser aprobada"
+                : vencida
+                  ? "Esta carga ya venció"
+                  : puedeTomar
+                    ? "Acepta la tarifa publicada y la carga queda asignada a tu empresa"
+                    : undefined
+            }
+            className="px-4 py-2 text-white rounded-[var(--radius-md)] text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: "var(--color-primary)" }}
+            onMouseEnter={(e) => { if (!bidDisabled) e.currentTarget.style.background = "var(--color-primary-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--color-primary)"; }}
+          >
+            {disabled
+              ? "Cuenta en revisión"
               : vencida
-                ? "Esta carga ya venció"
-                : undefined
-          }
-          className="px-4 py-2 text-white rounded-[var(--radius-md)] text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-        style={{ background: "var(--color-primary)" }}
-        onMouseEnter={(e) => { if (!bidDisabled) e.currentTarget.style.background = "var(--color-primary-hover)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--color-primary)"; }}
-        >
-          {disabled ? "Cuenta en revisión" : vencida ? "Vencida" : "Hacer oferta"}
-        </button>
+                ? "Vencida"
+                : puedeTomar
+                  ? `Tomar carga · Q ${carga.tarifa_referencia!.toLocaleString("es-GT")}`
+                  : "Hacer oferta"}
+          </button>
+        </div>
       </div>
     </div>
   );
